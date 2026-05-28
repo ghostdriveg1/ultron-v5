@@ -56,7 +56,7 @@ try:
 except Exception as e:
     print(f'GitHub snapshot recovery failed (starting fresh): {e}')
 "
-else:
+else
     echo "[SAOS BOOT] GitHub credentials not configured. Starting fresh Redis database."
 fi
 
