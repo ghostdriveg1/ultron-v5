@@ -17,7 +17,6 @@ from typing import AsyncGenerator
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sse_starlette.sse import EventSourceResponse
 
-from config import settings
 from core.auth import require_ext_secret
 from core.queue import task_queue
 from core.router import provider_router

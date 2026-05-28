@@ -10,9 +10,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import time
 from typing import AsyncGenerator
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from sse_starlette.sse import EventSourceResponse
 
@@ -62,7 +61,7 @@ def parse_tool_call_json(text: str) -> list[dict] | None:
                             val = float(val_strip)
                         else:
                             val = int(val_strip)
-                    except:
+                    except Exception:
                         pass
                 args[key] = val
                 
@@ -96,7 +95,7 @@ def parse_tool_call_json(text: str) -> list[dict] | None:
                     if isinstance(args, str):
                         try:
                             args = json.loads(args)
-                        except:
+                        except Exception:
                             pass
                     
                     call_id = tc.get("id") or f"call_{uuid.uuid4().hex[:12]}"

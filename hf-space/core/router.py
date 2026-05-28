@@ -15,7 +15,7 @@ import logging
 from typing import Any
 
 from config import settings
-from models.provider import CircuitState, ProviderConfig, ProviderState
+from models.provider import ProviderConfig, ProviderState
 
 logger = logging.getLogger("nancy.router")
 

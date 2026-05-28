@@ -14,7 +14,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from core.auth import require_api_key
