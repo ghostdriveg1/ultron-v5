@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'olympus-swarm/**'
-      - '.github/workflows/deploy_swarm.yml'
   workflow_dispatch:
 
 jobs:

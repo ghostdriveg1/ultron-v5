@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'hf-space/**'
-      - '.github/workflows/deploy_nancy.yml'
   workflow_dispatch:
 
 jobs:
