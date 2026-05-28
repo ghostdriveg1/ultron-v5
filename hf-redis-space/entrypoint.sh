@@ -68,25 +68,26 @@ redis-server --dir /data --dbfilename dump.rdb --save 60 1 --protected-mode no &
 echo "[SAOS BOOT] Launching background backup & Git-Archiver sync daemon..."
 python3 -u /app/backup.py > /var/log/backup.log 2>&1 &
 
-# 5. Inject NANCY_REDIS_SECRET into webdis.json basic auth
-if [ -n "$NANCY_REDIS_SECRET" ]; then
-    echo "[SAOS BOOT] Securing Webdis endpoint using custom Basic Auth credential secrets..."
-    # Format: Basic Authentication username=nancy_admin, password=NANCY_REDIS_SECRET
-    # We replace webdis.json basic auth settings. In Webdis, basic auth is configured via HTTP Basic Auth in headers or JSON-RPC.
-    # To implement Basic Auth in Webdis, we add the basic_auth array inside webdis.json!
-    # Webdis supports "http_basic_auth": ["user:password"] at root level.
-    # Let's dynamically patch webdis.json to inject the credentials!
-    python3 -c "
+# 5. Secure Webdis configuration and clean unexpected parameters
+echo "[SAOS BOOT] Cleaning configuration and securing Webdis REST gateway..."
+python3 -c "
 import os, json
 with open('/app/webdis.json', 'r') as f:
     data = json.load(f)
-data['http_basic_auth'] = [f'nancy_admin:{os.getenv(\"NANCY_REDIS_SECRET\")}']
+if 'workers' in data:
+    del data['workers']
+secret = os.getenv(\"NANCY_REDIS_SECRET\", \"\")
+if secret:
+    print('[SAOS BOOT] Injecting custom Basic Auth credentials into Webdis ACL.')
+    for entry in data.get(\"acl\", []):
+        if entry.get(\"http_profile\") == \"nancy_admin\":
+            del entry[\"http_profile\"]
+            entry[\"http_basic_auth\"] = f\"nancy_admin:{secret}\"
+else:
+    print('[WARNING] NANCY_REDIS_SECRET missing! Webdis REST server is running unsecured!')
 with open('/app/webdis.json', 'w') as f:
     json.dump(data, f, indent=2)
 "
-else
-    echo "[WARNING] NANCY_REDIS_SECRET missing! Webdis REST server is running unsecured!"
-fi
 
 # 6. Boot Webdis REST Gateway in the foreground to keep the Hugging Face container alive
 echo "[SAOS BOOT] Starting Webdis HTTP REST gateway on port 7860..."
