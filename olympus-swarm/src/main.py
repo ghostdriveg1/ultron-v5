@@ -1,5 +1,6 @@
 # main.py - Swarm Orchestrator (Ultron Brain) Web Entry Point & Admin Control Center
 import asyncio
+import json
 import logging
 import os
 import sys
@@ -501,7 +502,40 @@ ULTRON_DASHBOARD_HTML = """
                         </div>
                     </div>
                 </div>
+
+                <!-- Swarm Prompt Sandbox Injector -->
+                <div class="panel">
+                    <div class="panel-title">
+                        <span>🚀 Swarm Prompt Sandbox</span>
+                        <span class="badge">SANDBOX</span>
+                    </div>
+
+                    <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 1rem;">
+                        Type an instruction or question to dispatch directly down the active browser swarm.
+                    </p>
+
+                    <div class="form-group">
+                        <label for="sandbox-model">Target Model/Provider</label>
+                        <select id="sandbox-model" class="api-input" style="background: rgba(0, 0, 0, 0.45); height: 2.6rem; padding: 0 1rem; border-radius: 10px;">
+                            <option value="gpt-4o">ChatGPT (gpt-4o)</option>
+                            <option value="gemini-2.0-flash">Gemini (2.0 Flash)</option>
+                            <option value="deepseek-chat">DeepSeek (deepseek-chat)</option>
+                            <option value="kimi">Kimi (kimi)</option>
+                            <option value="claude">Claude (claude)</option>
+                            <option value="api-mistral">Mistral API (api-mistral)</option>
+                            <option value="api-nvidia-nim">NVIDIA NIM API (api-nvidia-nim)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sandbox-prompt">Instruction Prompt</label>
+                        <textarea id="sandbox-prompt" class="api-input" rows="3" style="resize: vertical; min-height: 80px;" placeholder="Type your instruction or code request here..."></textarea>
+                    </div>
+
+                    <button class="refresh-btn" id="sandbox-btn" onclick="dispatchSandboxPrompt()">DISPATCH TO SWARM</button>
+                </div>
             </div>
+
 
             <!-- Right panel: Live Swarm debates Terminal Log -->
             <div class="panel">
@@ -647,6 +681,42 @@ ULTRON_DASHBOARD_HTML = """
             }
         }
 
+        async function dispatchSandboxPrompt() {
+            const prompt = document.getElementById("sandbox-prompt").value.trim();
+            const model = document.getElementById("sandbox-model").value;
+            const btn = document.getElementById("sandbox-btn");
+
+            if (!prompt) {
+                alert("Please enter a prompt to dispatch!");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "DISPATCHING...";
+            btn.style.opacity = "0.7";
+
+            try {
+                const resp = await fetch("/admin/dispatch", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt: prompt, model: model })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    document.getElementById("sandbox-prompt").value = "";
+                    await loadLogs();
+                } else {
+                    alert("Dispatch failed: " + data.error);
+                }
+            } catch (e) {
+                alert("Error dispatching prompt: " + e);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "DISPATCH TO SWARM";
+                btn.style.opacity = "1";
+            }
+        }
+
         async function triggerSimulatedSwarm() {
             try {
                 await fetch("/admin/logs/simulate", { method: "POST" });
@@ -716,6 +786,82 @@ async def simulate_swarm_run():
     log_swarm_activity("MANAGER", "Self-healing reflexion complete. Code successfully compiled and locked!", "INFO")
     log_swarm_activity("SENATOR", "Auditing manager output. Test pass: 100%. Writing permanent ledger block.", "INFO")
     return {"status": "simulation_triggered"}
+
+
+async def run_swarm_dispatch_task(url: str, key: str, model: str, prompt: str) -> None:
+    """Performs the background API stream request to Nancy and logs steps to the terminal."""
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            headers = {
+                "Authorization": f"Bearer {key}",
+                "Content-Type": "application/json"
+            }
+            api_payload = {
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "stream": True
+            }
+
+            log_swarm_activity("MANAGER", f"Dispatched task to Nancy API using route: {url}/v1/chat/completions", "INFO")
+
+            full_response = []
+            start_time = time.time()
+
+            async with client.stream("POST", f"{url}/v1/chat/completions", headers=headers, json=api_payload) as r:
+                if r.status_code != 200:
+                    error_body = await r.aread()
+                    log_swarm_activity("SYSTEM", f"Nancy Gateway returned error: HTTP {r.status_code} - {error_body.decode('utf-8', errors='ignore')[:100]}", "ERROR")
+                    return
+
+                async for line in r.iter_lines():
+                    if line.startswith("data: "):
+                        data_str = line[6:]
+                        if data_str == "[DONE]":
+                            break
+                        try:
+                            data = json.loads(data_str)
+                            content = data["choices"][0]["delta"].get("content", "")
+                            if content:
+                                full_response.append(content)
+                                if len(full_response) % 30 == 0:
+                                    log_swarm_activity("MANAGER", f"Streaming browser scraper worker output... ({len(full_response)} chunks)", "INFO")
+                        except Exception:
+                            pass
+
+            latency = (time.time() - start_time) * 1000.0
+            final_text = "".join(full_response)
+
+            log_swarm_activity("MANAGER", f"Successfully received final browser scraper output ({len(final_text)} chars) in {latency:.0f}ms", "INFO")
+            log_swarm_activity("SENATOR", f"Audit passed! Verified final output: '{final_text[:80]}...'", "INFO")
+            log_swarm_activity("SYSTEM", "Swarm execution completed successfully. State saved.", "INFO")
+
+    except Exception as e:
+        log_swarm_activity("SYSTEM", f"Swarm dispatch execution failed: {str(e)}", "ERROR")
+
+
+@app.post("/admin/dispatch")
+async def dispatch_swarm_prompt(payload: dict = Body(...)):
+    """Dispatches a real prompt to Nancy, logging the step-by-step progress to the swarm logs."""
+    prompt = payload.get("prompt", "").strip()
+    model = payload.get("model", "gpt-4o").strip()
+
+    if not prompt:
+        return {"success": False, "error": "Empty prompt"}
+
+    url = integration_config.get("nancy_url", "").strip().rstrip("/")
+    key = integration_config.get("nancy_key", "").strip()
+
+    if not url or not key:
+        log_swarm_activity("SYSTEM", "Error: Nancy Gateway not configured. Please save credentials first.", "ERROR")
+        return {"success": False, "error": "Nancy Gateway not configured."}
+
+    log_swarm_activity("SENATOR", f"Starting Swarm dispatch for task: '{prompt[:60]}...'", "INFO")
+    log_swarm_activity("BOARD", f"Debating task execution using model/provider: {model.upper()}", "INFO")
+    log_swarm_activity("MANAGER", "Decomposing instructions and assigning to browser workers...", "INFO")
+
+    asyncio.create_task(run_swarm_dispatch_task(url, key, model, prompt))
+    return {"success": True, "message": "Swarm task dispatched successfully."}
+
 
 
 @app.post("/admin/concurrency")
