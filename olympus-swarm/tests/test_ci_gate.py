@@ -20,8 +20,8 @@ def test_imports():
         import neo4j
         import pydantic
         import pydantic_ai
-        import pyturso
-        import redis
+        import turso
+        import upstash_redis
         import structlog
         import uvicorn
     except ImportError as e:
