@@ -222,6 +222,16 @@ class ProviderRouter:
             and state.check_rate_limit()
         )
 
+    def is_provider_healthy(self, provider: str) -> bool:
+        """Alias for is_provider_available for admin dashboard compatibility."""
+        return self.is_provider_available(provider)
+
+    @property
+    def fallback_chain(self) -> list[str]:
+        """Return the active fallback chain of providers."""
+        return settings.fallback_chain
+
 
 # Module-level singleton
 provider_router = ProviderRouter()
+
