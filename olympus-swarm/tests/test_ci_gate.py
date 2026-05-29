@@ -5,7 +5,7 @@ import pytest
 def test_imports():
     """Verify all critical swarm dependencies are importable."""
     import sys
-    
+
     # Skip import checks locally on Windows to adhere to the local SSD hygiene rules
     if sys.platform == "win32":
         print("[CI GATE] Skipping local package import verification on Windows platform.")
