@@ -17,6 +17,7 @@ from typing import AsyncGenerator
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sse_starlette.sse import EventSourceResponse
 
+from pydantic import BaseModel
 from core.auth import require_ext_secret
 from core.queue import task_queue
 from core.router import provider_router
@@ -29,6 +30,26 @@ router = APIRouter(prefix="/ext", tags=["Extension Relay"])
 
 # Global dictionary to track connected extension instances: extension_id -> last_seen_timestamp
 active_extensions: dict[str, float] = {}
+
+
+class ExtensionLogPayload(BaseModel):
+    extension_id: str
+    level: str
+    provider: str
+    message: str
+
+
+@router.post("/log")
+async def receive_log(
+    payload: ExtensionLogPayload,
+    secret: str = Depends(require_ext_secret),
+):
+    """
+    Receive real-time simulation/scraping logs from the Chrome/Brave Extension.
+    """
+    logger.info("[%s] [%s] %s", payload.provider.upper(), payload.level.upper(), payload.message)
+    return {"status": "ok"}
+
 
 
 @router.get("/tasks/stream")

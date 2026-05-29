@@ -46,7 +46,7 @@ const MAX_LOGS = 200;
 const DEFAULT_STATE = {
   hfSpaceUrl: 'https://nancy.hf.space',
   apiKey: '',
-  typingMode: 'standard', // 'standard' | 'fast'
+  typingMode: 'fast', // 'standard' | 'fast'
   connected: false,
   lastEventId: '',
   providers: {

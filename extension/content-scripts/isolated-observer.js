@@ -150,6 +150,9 @@
         await window.NancyInputSimulator.typePrompt(inputEl, prompt);
         log('Keystroke simulation complete.');
 
+        // Pause to let Vue/React state updates propagate to the DOM and enable the submit button
+        await window.NancyInputSimulator.sleep(300);
+
         // 3. Locate submit button (do this AFTER typing so it is guaranteed to be rendered)
         const submitBtn = findElement(config.submit);
         

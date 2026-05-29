@@ -104,19 +104,33 @@ async def require_ext_secret(
     ] = None,
 ) -> str:
     """
-    FastAPI dependency: validates the bearer token against ``NANCY_EXT_SECRET``.
+    FastAPI dependency: validates the bearer token against ``NANCY_EXT_SECRET``,
+    ``NANCY_API_KEY``, or a SHA-256 hashed token cached dynamically in Upstash Redis.
 
     Used for all ``/ext/*`` endpoints.
     """
     token = _extract_token(request, credentials)
-    if token != settings.nancy_ext_secret:
-        logger.warning(
-            "Invalid extension secret attempt from %s",
-            request.client.host if request.client else "unknown",
-        )
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid extension secret.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    return token
+    
+    # 1. Master Keys Local Bypass (either extension secret or API key)
+    if token in (settings.nancy_ext_secret, settings.nancy_api_key):
+        return token
+
+    # 2. Dynamic Redis Hashed Key validation
+    hashed = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    try:
+        key_meta = await redis_client.get_json(f"nancy:api_keys:{hashed}")
+        if key_meta:
+            return token
+    except Exception as exc:
+        logger.error("Error validating dynamic token for extension: %s", exc)
+
+    logger.warning(
+        "Invalid extension secret/key attempt from %s",
+        request.client.host if request.client else "unknown",
+    )
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid extension secret or API key.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+

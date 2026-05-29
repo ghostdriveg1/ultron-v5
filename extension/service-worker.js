@@ -79,7 +79,7 @@ async function connectToServer() {
 
   const state = await storage.getState();
   const url = state.hfSpaceUrl;
-  const key = state.apiKey || 'nancy-dev-key'; // Fallback to dev key
+  const key = state.apiKey || 'nancy-ext-dev-secret'; // Fallback to extension secret
 
   if (!url) {
     await storage.appendLog('error', 'Nancy Server URL not configured.');
@@ -237,7 +237,7 @@ async function executeTask(task) {
       const matchedTab = existingTabs.find(t => t.url && adapter.matchesUrl(t.url));
       if (matchedTab) {
         // Navigate existing tab to the root (starts a new chat)
-        await chrome.tabs.update(matchedTab.id, { url: baseUrl, active: false });
+        await chrome.tabs.update(matchedTab.id, { url: baseUrl, active: true });
         tab = matchedTab;
         await waitTabLoaded(tab.id);
         await sleep(3000); // Wait for the new chat interface to initialize
@@ -252,13 +252,13 @@ async function executeTask(task) {
       const adapter = getAdapter(provider);
       const matchedTab = existingTabs.find(t => t.url && adapter && adapter.matchesUrl(t.url));
       if (matchedTab) {
-        await chrome.tabs.update(matchedTab.id, { url: conversation_url, active: false });
+        await chrome.tabs.update(matchedTab.id, { url: conversation_url, active: true });
         tab = matchedTab;
         await waitTabLoaded(tab.id);
         await sleep(3000); // Wait for the conversation to load
       } else {
         // Open a new tab directly to the conversation URL
-        tab = await chrome.tabs.create({ url: conversation_url, active: false });
+        tab = await chrome.tabs.create({ url: conversation_url, active: true });
         await waitTabLoaded(tab.id);
         await sleep(3500);
       }
@@ -331,7 +331,7 @@ async function getOrCreateProviderTab(providerKey) {
   // Need to open a new tab
   await storage.appendLog('info', `Opening new tab for ${adapter.name}...`);
   const targetUrl = `https://${adapter.urlPatterns[0]}`;
-  const newTab = await chrome.tabs.create({ url: targetUrl, active: false });
+  const newTab = await chrome.tabs.create({ url: targetUrl, active: true });
   
   await storage.updateProvider(providerKey, { tabId: newTab.id, status: 'healthy' });
   await waitTabLoaded(newTab.id);
@@ -360,6 +360,33 @@ function waitTabLoaded(tabId) {
   });
 }
 
+// Async POST telemetry back to Nancy Server for central visibility
+async function postLogToServer(provider, level, messageText) {
+  const state = await storage.getState();
+  if (!state.hfSpaceUrl) return;
+
+  const secret = state.apiKey || 'nancy-ext-dev-secret';
+  const url = `${state.hfSpaceUrl.replace(/\/$/, '')}/ext/log`;
+
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${secret}`,
+      },
+      body: JSON.stringify({
+        extension_id: EXTENSION_ID,
+        level: level,
+        provider: provider || 'system',
+        message: messageText,
+      }),
+    });
+  } catch (err) {
+    // Silent catch to prevent fetch-level loops
+  }
+}
+
 // ─── Messaging & Responses ───────────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const { type, taskId, chunk, error, provider } = message;
@@ -372,6 +399,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     handleTaskError(taskId, error);
   } else if (type === 'TAB_LOG') {
     storage.appendLog('info', `[${provider}] ${message.message}`);
+    postLogToServer(provider, 'info', message.message).catch(() => {});
   } else if (type === 'FORCE_RECONNECT') {
     connectToServer();
   }
