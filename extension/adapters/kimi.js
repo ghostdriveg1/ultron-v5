@@ -8,7 +8,7 @@ import { BaseAdapter, registerAdapter } from './base.js';
 class KimiAdapter extends BaseAdapter {
   get key() { return 'kimi'; }
   get name() { return 'Kimi'; }
-  get urlPatterns() { return ['kimi.moonshot.cn']; }
+  get urlPatterns() { return ['kimi.moonshot.cn', 'kimi.ai', 'kimi.com']; }
   get inputSelectors() {
     return [
       '[contenteditable="true"]',

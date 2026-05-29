@@ -8,7 +8,7 @@ import { BaseAdapter, registerAdapter } from './base.js';
 class DeepSeekAdapter extends BaseAdapter {
   get key() { return 'deepseek'; }
   get name() { return 'DeepSeek'; }
-  get urlPatterns() { return ['chat.deepseek.com']; }
+  get urlPatterns() { return ['chat.deepseek.com', 'deepseek.com']; }
   get inputSelectors() {
     return [
       'textarea',

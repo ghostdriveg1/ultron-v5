@@ -25,22 +25,22 @@
     },
     gemini: {
       name: 'Gemini',
-      input: ['div[contenteditable="true"][aria-label="Prompt"]', 'textarea', '[contenteditable="true"]'],
-      submit: ['button[aria-label="Send message"]', 'button[class*="send"]', 'div[aria-label="Send message"] button'],
+      input: ['div.ql-editor[contenteditable="true"]', 'div[contenteditable="true"][aria-label="Prompt"]', 'textarea', '[contenteditable="true"]'],
+      submit: ['button.send-button', 'button[aria-label="Send message"]', 'button[class*="send"]', 'div[aria-label="Send message"] button'],
       response: '.message-content, [data-message-author-role="assistant"], div.model-response',
       streaming: '.generating, .streaming, [class*="generating"]',
     },
     deepseek: {
       name: 'DeepSeek',
-      input: ['textarea', '#chat-input', '[contenteditable="true"]'],
-      submit: ['button[aria-label="Send message"]', 'div[class*="send-button"]', 'button[class*="send"]'],
+      input: ['#chat-input-textarea', 'textarea', '#chat-input', '[contenteditable="true"]'],
+      submit: ['button[aria-label="Send message"]', 'div[class*="send-button"]', 'button[class*="send"]', '[class*="send-button"]', '[class*="sendButton"]', '[class*="send"]'],
       response: 'div[class*="assistant-message"]',
       streaming: 'div[class*="streaming"], div[class*="loading"]',
     },
     kimi: {
       name: 'Kimi',
-      input: ['[contenteditable="true"]', 'textarea'],
-      submit: ['button[class*="send"]', 'button[type="submit"]'],
+      input: ['div.chat-input-editor[contenteditable="true"]', '#kimi-chat-input', 'div[contenteditable="true"]', 'textarea', '[contenteditable="true"]'],
+      submit: ['button[aria-label*="发送"]', 'button[aria-label*="Send"]', 'button[class*="send"]', '[class*="send-button"]', 'button[type="submit"]', '[class*="send"]'],
       response: 'div[class*="assistant"]',
       streaming: '.streaming-indicator, [class*="streaming"]',
     },
@@ -70,9 +70,9 @@
   function detectProvider() {
     const host = window.location.hostname;
     if (host.includes('openai.com') || host.includes('chatgpt.com')) return 'chatgpt';
-    if (host.includes('gemini.google.com')) return 'gemini';
+    if (host.includes('gemini.google.com') || host.includes('gemini.google')) return 'gemini';
     if (host.includes('deepseek.com')) return 'deepseek';
-    if (host.includes('kimi.moonshot.cn')) return 'kimi';
+    if (host.includes('kimi.moonshot.cn') || host.includes('kimi.ai') || host.includes('kimi.com')) return 'kimi';
     if (host.includes('claude.ai')) return 'claude';
     if (host.includes('build.nvidia.com') || host.includes('nim.developer.nvidia.com')) return 'nim';
     if (host.includes('z.ai') || host.includes('chat.z.ai')) return 'zai';
@@ -152,13 +152,37 @@
 
         // 3. Locate submit button (do this AFTER typing so it is guaranteed to be rendered)
         const submitBtn = findElement(config.submit);
-        if (!submitBtn) throw new Error(`Could not locate send button.`);
+        
+        let submitted = false;
+        if (submitBtn && !submitBtn.disabled && submitBtn.getAttribute('aria-disabled') !== 'true') {
+          submitBtn.click();
+          log('Send button clicked.');
+          submitted = true;
+        } else {
+          log('Submit button not found, disabled, or aria-disabled. Trying Enter key fallback...');
+        }
 
-        // 4. Submit click
-        submitBtn.click();
-        log('Send button clicked.');
+        // 4. Enter-key fallback: Dispatch keyboard Enter event on input element if not clicked
+        if (!submitted) {
+          log('Simulating Enter keypress event to submit...');
+          inputEl.focus();
+          const enterEvent = new KeyboardEvent('keydown', {
+            key: 'Enter',
+            code: 'Enter',
+            keyCode: 13,
+            which: 13,
+            bubbles: true,
+            cancelable: true,
+          });
+          inputEl.dispatchEvent(enterEvent);
+          
+          // Also dispatch keypress/keyup for frameworks (Kimi/Vue)
+          inputEl.dispatchEvent(new KeyboardEvent('keypress', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
+          inputEl.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
+          log('Enter keypress events dispatched.');
+        }
 
-        // 4. Start DOM observer fallback
+        // 5. Start DOM observer fallback
         startDOMObserver(config);
 
       } catch (err) {

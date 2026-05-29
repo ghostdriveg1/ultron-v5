@@ -76,16 +76,33 @@
 
     element.dispatchEvent(new Event('focus', { bubbles: true }));
 
+    // Helper to bypass React/Vue property descriptors and trigger native setter
+    function setNativeValue(el, val) {
+      const valueSetter = Object.getOwnPropertyDescriptor(el, 'value')?.set;
+      const prototype = Object.getPrototypeOf(el);
+      const prototypeValueSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+      if (prototypeValueSetter && valueSetter !== prototypeValueSetter) {
+        prototypeValueSetter.call(el, val);
+      } else if (valueSetter) {
+        valueSetter.call(el, val);
+      } else {
+        el.value = val;
+      }
+    }
+
     if (typingMode === 'fast') {
       console.log('[Nancy/Simulator] Fast Mode active. Injecting text instantly.');
       if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
-        element.value = text;
-      } else if (element.getAttribute('contenteditable') === 'true') {
+        setNativeValue(element, text);
+      } else if (element.isContentEditable || element.tagName === 'DIV') {
+        element.focus();
         const selection = window.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(element);
-        selection.removeAllRanges();
-        selection.addRange(range);
+        if (selection) {
+          const range = document.createRange();
+          range.selectNodeContents(element);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
         document.execCommand('insertText', false, text);
       }
       
@@ -110,9 +127,20 @@
 
       // Insert character
       if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
-        element.value += char;
-      } else if (element.getAttribute('contenteditable') === 'true') {
-        // Safe document.execCommand for rich text editors
+        const newValue = element.value + char;
+        setNativeValue(element, newValue);
+      } else if (element.isContentEditable || element.tagName === 'DIV') {
+        element.focus();
+        const selection = window.getSelection();
+        if (selection) {
+          if (selection.rangeCount === 0 || !element.contains(selection.anchorNode)) {
+            const range = document.createRange();
+            range.selectNodeContents(element);
+            range.collapse(false); // Collapse selection to end
+            selection.removeAllRanges();
+            selection.addRange(range);
+          }
+        }
         document.execCommand('insertText', false, char);
       }
 

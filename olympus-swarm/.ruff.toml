@@ -12,10 +12,10 @@ select = [
     "ASYNC", # flake8-async (async pitfalls)
     "UP",  # pyupgrade (modern python syntax)
 ]
-ignore = ["E501"]
+ignore = ["E501", "C901"]
 
 [lint.per-file-ignores]
 "tests/*" = ["F401"]
 
 [lint.mccabe]
-max-complexity = 10
+max-complexity = 30

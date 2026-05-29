@@ -8,7 +8,7 @@ import { BaseAdapter, registerAdapter } from './base.js';
 class GeminiAdapter extends BaseAdapter {
   get key() { return 'gemini'; }
   get name() { return 'Gemini'; }
-  get urlPatterns() { return ['gemini.google.com']; }
+  get urlPatterns() { return ['gemini.google.com', 'gemini.google']; }
   get inputSelectors() {
     return [
       'div[contenteditable="true"][aria-label="Prompt"]',

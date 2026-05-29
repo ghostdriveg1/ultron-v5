@@ -16,11 +16,23 @@
 
   "host_permissions": [
     "https://chat.openai.com/*",
+    "https://*.chat.openai.com/*",
     "https://chatgpt.com/*",
+    "https://*.chatgpt.com/*",
     "https://gemini.google.com/*",
+    "https://*.gemini.google.com/*",
     "https://chat.deepseek.com/*",
+    "https://*.chat.deepseek.com/*",
+    "https://deepseek.com/*",
+    "https://*.deepseek.com/*",
     "https://kimi.moonshot.cn/*",
-    "https://claude.ai/*"
+    "https://*.kimi.moonshot.cn/*",
+    "https://kimi.ai/*",
+    "https://*.kimi.ai/*",
+    "https://kimi.com/*",
+    "https://*.kimi.com/*",
+    "https://claude.ai/*",
+    "https://*.claude.ai/*"
   ],
 
   "background": {
@@ -79,7 +91,9 @@
     },
     {
       "matches": [
-        "https://chat.deepseek.com/*"
+        "https://chat.deepseek.com/*",
+        "https://*.deepseek.com/*",
+        "https://deepseek.com/*"
       ],
       "js": [
         "content-scripts/input-simulator.js",
@@ -90,7 +104,9 @@
     },
     {
       "matches": [
-        "https://chat.deepseek.com/*"
+        "https://chat.deepseek.com/*",
+        "https://*.deepseek.com/*",
+        "https://deepseek.com/*"
       ],
       "js": [
         "content-scripts/main-interceptor.js"
@@ -100,7 +116,12 @@
     },
     {
       "matches": [
-        "https://kimi.moonshot.cn/*"
+        "https://kimi.moonshot.cn/*",
+        "https://*.kimi.moonshot.cn/*",
+        "https://kimi.ai/*",
+        "https://*.kimi.ai/*",
+        "https://kimi.com/*",
+        "https://*.kimi.com/*"
       ],
       "js": [
         "content-scripts/input-simulator.js",
@@ -111,7 +132,12 @@
     },
     {
       "matches": [
-        "https://kimi.moonshot.cn/*"
+        "https://kimi.moonshot.cn/*",
+        "https://*.kimi.moonshot.cn/*",
+        "https://kimi.ai/*",
+        "https://*.kimi.ai/*",
+        "https://kimi.com/*",
+        "https://*.kimi.com/*"
       ],
       "js": [
         "content-scripts/main-interceptor.js"
