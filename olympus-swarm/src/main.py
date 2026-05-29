@@ -564,13 +564,33 @@ ULTRON_DASHBOARD_HTML = """
             </div>
         </header>
 
+        <!-- Futuristic Glassmorphic Agent Inspector Modal -->
+        <div id="inspector-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(3, 3, 6, 0.85); backdrop-filter: blur(15px); z-index: 10000; align-items: center; justify-content: center; padding: 2rem;">
+            <div class="glass-card" style="max-width: 800px; width: 100%; border-top: 3px solid var(--primary); max-height: 85vh; display: flex; flex-direction: column; padding: 1.5rem; gap: 1rem; box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
+                <div class="card-header" style="border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.8rem;">
+                    <span class="agent-title" id="modal-agent-title" style="font-size: 1.3rem;">🧠 Agent Inspector</span>
+                    <button class="badge" onclick="closeInspector()" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); cursor: pointer; padding: 0.3rem 0.6rem;">CLOSE [ESC]</button>
+                </div>
+
+                <div class="form-group" style="flex-grow: 1; display: flex; flex-direction: column; gap: 0.5rem; overflow-y: auto;">
+                    <label id="modal-content-label">UN-TRUNCATED DEBATED OUTCOMES & BRIEFINGS</label>
+                    <textarea id="modal-text-content" readonly class="api-input" style="flex-grow: 1; resize: none; font-family: 'Fira Code', monospace; font-size: 0.85rem; line-height: 1.5; background: rgba(0,0,0,0.4); padding: 1rem; border: 1px solid rgba(255,255,255,0.04); min-height: 300px; color: #f3f4f6;"></textarea>
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.8rem;">
+                    <button class="refresh-btn" style="width: auto; padding: 0.5rem 1.5rem; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #93c5fd;" onclick="copyModalText()">COPY TO CLIPBOARD</button>
+                    <button class="refresh-btn" style="width: auto; padding: 0.5rem 1.5rem;" onclick="closeInspector()">DONE</button>
+                </div>
+            </div>
+        </div>
+
         <!-- EMPIRE SWARM VISUAL HIERARCHY GRID -->
         <div class="hierarchy-container">
             <!-- TIER 1: SENATOR -->
             <div>
                 <div class="tier-label">Tier 1: Global Executive Auditor</div>
                 <div class="tier-grid tier-1-grid">
-                    <div class="glass-card senator-card" id="card-senator">
+                    <div class="glass-card senator-card" id="card-senator" style="cursor: pointer;" onclick="openInspector('senator')">
                         <div class="card-header">
                             <span class="agent-title">🏛️ Senator Agent</span>
                             <span class="agent-role">PydanticAI • Gemini 2.5 Pro</span>
@@ -587,7 +607,7 @@ ULTRON_DASHBOARD_HTML = """
                 <div class="tier-label">Tier 2: Planning Council Board of Directors</div>
                 <div class="tier-grid tier-2-grid">
                     <!-- Architect -->
-                    <div class="glass-card board-card" id="card-architect">
+                    <div class="glass-card board-card" id="card-architect" style="cursor: pointer;" onclick="openInspector('architect')">
                         <div class="card-header">
                             <span class="agent-title">📐 Architect</span>
                             <div class="pulse-light" id="light-architect"></div>
@@ -597,7 +617,7 @@ ULTRON_DASHBOARD_HTML = """
                     </div>
 
                     <!-- Researcher -->
-                    <div class="glass-card board-card" id="card-researcher">
+                    <div class="glass-card board-card" id="card-researcher" style="cursor: pointer;" onclick="openInspector('researcher')">
                         <div class="card-header">
                             <span class="agent-title">🔍 Researcher</span>
                             <div class="pulse-light" id="light-researcher"></div>
@@ -607,7 +627,7 @@ ULTRON_DASHBOARD_HTML = """
                     </div>
 
                     <!-- Reviewer -->
-                    <div class="glass-card board-card" id="card-reviewer">
+                    <div class="glass-card board-card" id="card-reviewer" style="cursor: pointer;" onclick="openInspector('reviewer')">
                         <div class="card-header">
                             <span class="agent-title">🛡️ Reviewer</span>
                             <div class="pulse-light" id="light-reviewer"></div>
@@ -617,7 +637,7 @@ ULTRON_DASHBOARD_HTML = """
                     </div>
 
                     <!-- Tester -->
-                    <div class="glass-card board-card" id="card-tester">
+                    <div class="glass-card board-card" id="card-tester" style="cursor: pointer;" onclick="openInspector('tester')">
                         <div class="card-header">
                             <span class="agent-title">🧪 Tester</span>
                             <div class="pulse-light" id="light-tester"></div>
@@ -627,7 +647,7 @@ ULTRON_DASHBOARD_HTML = """
                     </div>
 
                     <!-- Integrator -->
-                    <div class="glass-card board-card" id="card-integrator">
+                    <div class="glass-card board-card" id="card-integrator" style="cursor: pointer;" onclick="openInspector('integrator')">
                         <div class="card-header">
                             <span class="agent-title">🔗 Integrator</span>
                             <div class="pulse-light" id="light-integrator"></div>
@@ -642,7 +662,7 @@ ULTRON_DASHBOARD_HTML = """
             <div>
                 <div class="tier-label">Tier 3: Distributed Prompt Managers</div>
                 <div class="tier-grid tier-3-grid">
-                    <div class="glass-card manager-card" id="card-manager">
+                    <div class="glass-card manager-card" id="card-manager" style="cursor: pointer;" onclick="openInspector('manager')">
                         <div class="card-header">
                             <span class="agent-title">🧠 Manager 'mgr-1'</span>
                             <span class="agent-role">Llama 3.3 70B • Quota Hot-Swap Mutex</span>
@@ -659,7 +679,7 @@ ULTRON_DASHBOARD_HTML = """
                 <div class="tier-label">Tier 4: Browser Extension Workers</div>
                 <div class="tier-grid tier-4-grid">
                     <!-- ChatGPT -->
-                    <div class="glass-card worker-card" id="card-worker-chatgpt">
+                    <div class="glass-card worker-card" id="card-worker-chatgpt" style="cursor: pointer;" onclick="openInspector('chatgpt')">
                         <div class="card-header">
                             <span class="agent-title">💬 ChatGPT Plus</span>
                             <div class="pulse-light" id="light-worker-chatgpt"></div>
@@ -669,7 +689,7 @@ ULTRON_DASHBOARD_HTML = """
                     </div>
 
                     <!-- Gemini -->
-                    <div class="glass-card worker-card" id="card-worker-gemini">
+                    <div class="glass-card worker-card" id="card-worker-gemini" style="cursor: pointer;" onclick="openInspector('gemini')">
                         <div class="card-header">
                             <span class="agent-title">♊ Gemini Ultra</span>
                             <div class="pulse-light" id="light-worker-gemini"></div>
@@ -679,7 +699,7 @@ ULTRON_DASHBOARD_HTML = """
                     </div>
 
                     <!-- DeepSeek -->
-                    <div class="glass-card worker-card" id="card-worker-deepseek">
+                    <div class="glass-card worker-card" id="card-worker-deepseek" style="cursor: pointer;" onclick="openInspector('deepseek')">
                         <div class="card-header">
                             <span class="agent-title">🐋 DeepSeek Coder</span>
                             <div class="pulse-light" id="light-worker-deepseek"></div>
@@ -689,7 +709,7 @@ ULTRON_DASHBOARD_HTML = """
                     </div>
 
                     <!-- Kimi -->
-                    <div class="glass-card worker-card" id="card-worker-kimi">
+                    <div class="glass-card worker-card" id="card-worker-kimi" style="cursor: pointer;" onclick="openInspector('kimi')">
                         <div class="card-header">
                             <span class="agent-title">🌙 Kimi Chat</span>
                             <div class="pulse-light" id="light-worker-worker-kimi"></div>
@@ -897,6 +917,67 @@ ULTRON_DASHBOARD_HTML = """
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
 
+        // Global object storing the absolute latest full outputs for each agent
+        let swarmCache = {
+            senator: "Awaiting task audit request...",
+            architect: "Standby",
+            researcher: "Standby",
+            reviewer: "Standby",
+            tester: "Standby",
+            integrator: "Standby",
+            manager: "Task checklist queue inactive. Standing by...",
+            chatgpt: "Offline",
+            gemini: "Offline",
+            deepseek: "Offline",
+            kimi: "Offline"
+        };
+
+        function openInspector(agentKey) {
+            const modal = document.getElementById("inspector-modal");
+            const title = document.getElementById("modal-agent-title");
+            const text = document.getElementById("modal-text-content");
+            const label = document.getElementById("modal-content-label");
+
+            const mappings = {
+                senator: { title: "🏛️ Supreme Auditor Senator", label: "SENATOR MASTER AUDIT SUMMARY & LEDGER" },
+                architect: { title: "📐 Chief Swarm Architect", label: "TIER 2 ARCHITECT FOLDERS & CLASSES DESIGN PLAN" },
+                researcher: { title: "🔍 Chief Swarm Researcher", label: "TIER 2 RESEARCHER LIBRARIES COMPATIBILITY FINDINGS" },
+                reviewer: { title: "🛡️ Chief Swarm Reviewer", label: "TIER 2 REVIEWER CIRCULAR DEPENDENCY & SECURITY REVIEW" },
+                tester: { title: "🧪 Chief Swarm Tester", label: "TIER 2 TESTER UNIT SPECIFICATIONS & MOCK ASSERTIONS" },
+                integrator: { title: "🔗 Chief Swarm Integrator", label: "TIER 2 INTEGRATOR FINAL RESOLUTIONS & CHECKS DECOMPOSITION" },
+                manager: { title: "🧠 Distributed Manager 'mgr-1'", label: "TIER 3 COMPILED MASTER PROMPT FOR CHATBOT DELEGATION" },
+                chatgpt: { title: "💬 ChatGPT Plus Web Worker", label: "TIER 4 ACTIVE SCRAPED CHATGPT WORKER OUTPUT" },
+                gemini: { title: "♊ Gemini Ultra Web Worker", label: "TIER 4 ACTIVE SCRAPED GEMINI WORKER OUTPUT" },
+                deepseek: { title: "🐋 DeepSeek Coder Web Worker", label: "TIER 4 ACTIVE SCRAPED DEEPSEEK WORKER OUTPUT" },
+                kimi: { title: "🌙 Kimi Chat Web Worker", label: "TIER 4 ACTIVE SCRAPED KIMI WORKER OUTPUT" }
+            };
+
+            const info = mappings[agentKey] || { title: "Agent Inspector", label: "UN-TRUNCATED DETAILS" };
+            title.innerText = info.title;
+            label.innerText = info.label;
+
+            text.value = swarmCache[agentKey] || "No data received yet.";
+            modal.style.display = "flex";
+        }
+
+        function closeInspector() {
+            document.getElementById("inspector-modal").style.display = "none";
+        }
+
+        function copyModalText() {
+            const text = document.getElementById("modal-text-content");
+            text.select();
+            document.execCommand("copy");
+            alert("Copied to clipboard!");
+        }
+
+        // Close on escape key
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+                closeInspector();
+            }
+        });
+
         // Hydrates visual Swarm Hierarchy agent cards by parsing stream logs
         function hydrateHierarchyState(logs) {
             // Reset Director and Senator bubbles unless actively populated
@@ -914,23 +995,36 @@ ULTRON_DASHBOARD_HTML = """
 
                 if (sender === "senator") {
                     document.getElementById("bubble-senator").innerText = msg;
+                    swarmCache.senator = msg;
                 } else if (sender === "architect") {
                     document.getElementById("bubble-architect").innerText = msg.substring(0, 160) + (msg.length > 160 ? "..." : "");
+                    swarmCache.architect = msg;
                     boardActive.architect = true;
                 } else if (sender === "researcher") {
                     document.getElementById("bubble-researcher").innerText = msg.substring(0, 160) + (msg.length > 160 ? "..." : "");
+                    swarmCache.researcher = msg;
                     boardActive.researcher = true;
                 } else if (sender === "reviewer") {
                     document.getElementById("bubble-reviewer").innerText = msg.substring(0, 160) + (msg.length > 160 ? "..." : "");
+                    swarmCache.reviewer = msg;
                     boardActive.reviewer = true;
                 } else if (sender === "tester") {
                     document.getElementById("bubble-tester").innerText = msg.substring(0, 160) + (msg.length > 160 ? "..." : "");
+                    swarmCache.tester = msg;
                     boardActive.tester = true;
                 } else if (sender === "integrator") {
                     document.getElementById("bubble-integrator").innerText = msg.substring(0, 160) + (msg.length > 160 ? "..." : "");
+                    swarmCache.integrator = msg;
                     boardActive.integrator = true;
                 } else if (sender === "manager") {
                     document.getElementById("bubble-manager").innerText = msg;
+                    swarmCache.manager = msg;
+                } else if (sender === "chatgpt" || sender === "gemini" || sender === "deepseek" || sender === "kimi") {
+                    const bubble = document.getElementById("bubble-worker-" + sender);
+                    if (bubble) {
+                        bubble.innerText = msg.substring(0, 160) + (msg.length > 160 ? "..." : "");
+                    }
+                    swarmCache[sender] = msg;
                 }
             }
 
@@ -1242,6 +1336,13 @@ async def run_swarm_dispatch_task(url: str, key: str, model: str, prompt: str) -
         for idx, task in enumerate(tasks):
             log_swarm_activity("MANAGER", f"Manager '{manager_id}' picked up Checklist Task #{idx+1}: '{task}'", "INFO")
 
+            # Dynamic worker routing for swarm-all
+            target_worker_model = model
+            if model == "swarm-all":
+                active_workers = ["deepseek-chat", "gemini-2.0-flash", "kimi", "gpt-4o"]
+                target_worker_model = active_workers[idx % len(active_workers)]
+                log_swarm_activity("MANAGER", f"Empire Swarm dynamic dispatch: mapping task #{idx+1} to Chatbot worker '{target_worker_model.upper()}'...", "INFO")
+
             # Hot-Swap API Key checks
             log_swarm_activity("SENTINEL", f"Sentinel checking Groq/Gemini key quota for Manager '{manager_id}'...", "INFO")
             log_swarm_activity("SENTINEL", "KEY LOCK ACQUIRED: Target API slots ACTIVE. Cooldown risk: 0%. Mutex released.", "INFO")
@@ -1263,7 +1364,7 @@ async def run_swarm_dispatch_task(url: str, key: str, model: str, prompt: str) -
                 try:
                     scraped_output = await orchestrator.dispatch_worker_prompt(
                         manager_id=manager_id,
-                        provider=model,
+                        provider=target_worker_model,
                         prompt=master_prompt
                     )
                 except Exception as ws_err:
@@ -1274,7 +1375,7 @@ async def run_swarm_dispatch_task(url: str, key: str, model: str, prompt: str) -
 
             # Fallback direct Nancy API query if WS is offline or failed
             if not scraped_output:
-                log_swarm_activity("MANAGER", f"Initiating direct HTTPX stream request to Nancy completions API ({model})...", "INFO")
+                log_swarm_activity("MANAGER", f"Initiating direct HTTPX stream request to Nancy completions API ({target_worker_model})...", "INFO")
                 try:
                     async with httpx.AsyncClient(timeout=60.0) as client:
                         headers = {
@@ -1282,7 +1383,7 @@ async def run_swarm_dispatch_task(url: str, key: str, model: str, prompt: str) -
                             "Content-Type": "application/json"
                         }
                         api_payload = {
-                            "model": model,
+                            "model": target_worker_model,
                             "messages": [{"role": "user", "content": master_prompt}],
                             "stream": True
                         }
@@ -1315,6 +1416,10 @@ async def run_swarm_dispatch_task(url: str, key: str, model: str, prompt: str) -
 
             log_swarm_activity("MANAGER", f"Received completed text output ({len(scraped_output)} chars) from Nancy worker.", "INFO")
 
+            # Relay completed chatbot output back under its specific logging name!
+            worker_log_key = target_worker_model.replace("api-", "").split("-")[0].replace("gpt", "chatgpt").upper()
+            log_swarm_activity(worker_log_key, scraped_output, "INFO")
+
             # Local Verification & Reflexion Loop
             log_swarm_activity("MANAGER", "Local verification: executing shell test suites and syntax compilers...", "INFO")
 
@@ -1335,7 +1440,7 @@ async def run_swarm_dispatch_task(url: str, key: str, model: str, prompt: str) -
                     try:
                         scraped_output = await orchestrator.dispatch_worker_prompt(
                             manager_id=manager_id,
-                            provider=model,
+                            provider=target_worker_model,
                             prompt=correction_prompt
                         )
                     except Exception:
@@ -1344,7 +1449,7 @@ async def run_swarm_dispatch_task(url: str, key: str, model: str, prompt: str) -
                     try:
                         async with httpx.AsyncClient(timeout=45.0) as client:
                             headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
-                            api_payload = {"model": model, "messages": [{"role": "user", "content": correction_prompt}], "stream": False}
+                            api_payload = {"model": target_worker_model, "messages": [{"role": "user", "content": correction_prompt}], "stream": False}
                             resp = await client.post(f"{url}/v1/chat/completions", headers=headers, json=api_payload)
                             if resp.status_code == 200:
                                 scraped_output = resp.json()["choices"][0]["message"]["content"]
