@@ -79,9 +79,16 @@ class RedisClient:
         try:
             resp = await self._client.post("/", json=["PING"])
             resp.raise_for_status()
-            logger.info("Redis connected: %s", resp.json())
+            logger.info("✅ Redis connected successfully: %s", resp.json())
+        except httpx.ConnectError as exc:
+            logger.error("❌ Redis Space connection failed! It may be sleeping/hibernating. (Error: %s)", exc)
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code in (401, 403):
+                logger.error("❌ Redis Authentication failed! Check NANCY_REDIS_SECRET or token. (HTTP %s)", exc.response.status_code)
+            else:
+                logger.warning("⚠️ Redis PING failed with HTTP %s: %s", exc.response.status_code, exc.response.text)
         except Exception as exc:
-            logger.warning("Redis PING failed (non-fatal): %s", exc)
+            logger.warning("⚠️ Redis PING failed (non-fatal): %s", exc)
 
     async def shutdown(self) -> None:
         """Close the HTTP client. Call during app shutdown."""

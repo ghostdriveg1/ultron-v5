@@ -51,6 +51,26 @@ async def receive_log(
     return {"status": "ok"}
 
 
+@router.get("/status")
+async def extension_status():
+    """
+    Extension SSE Connection Status.
+    No authentication required \u2014 allows Ultron Swarm Orchestrator and external monitoring
+    to poll the number of active extension connections and current task queue state.
+    """
+    now = time.time()
+    active = {
+        eid: round(now - ts, 1)
+        for eid, ts in active_extensions.items()
+        if (now - ts) < 45.0  # 45s threshold (heartbeat is every 24s)
+    }
+    return {
+        "active_extension_count": len(active),
+        "extensions": active,
+        "queue": task_queue.get_status(),
+        "timestamp": now,
+    }
+
 
 @router.get("/tasks/stream")
 async def tasks_stream(
@@ -86,10 +106,15 @@ async def tasks_stream(
                         "id": task.task_id,
                     }
                 else:
-                    # Keep-alive SSE ping
+                    # Keep-alive SSE ping — includes queue metadata so extension can show
+                    # live queue status in the side panel without extra API calls.
                     yield {
                         "event": "ping",
-                        "data": "keep-alive",
+                        "data": json.dumps({
+                            "server_time": time.time(),
+                            "queue_size": task_queue.pending_count,
+                            "extension_id": extension_id,
+                        }),
                     }
         except asyncio.CancelledError:
             logger.info("Extension client '%s' stream cancelled", extension_id)
@@ -97,6 +122,7 @@ async def tasks_stream(
             active_extensions.pop(extension_id, None)
 
     return EventSourceResponse(event_generator())
+
 
 
 @router.post("/heartbeat")

@@ -56,10 +56,12 @@ class SwarmManagerNode:
         # 3. Dispatch to Brave Browser Extension worker over WebSocket
         logger.info(f"Routing Master Prompt to Brave Profile WebSocket of {manager_id}...")
         try:
-            # Dispatch prompt via raw WebSocket and await stream completion
+            # Dispatch prompt via raw WebSocket and await stream completion.
+            # Provider key MUST match the canonical map in PROVIDER_CANONICAL_MAP (main.py)
+            # and the extension adapter file keys. Use "zai" not "z_ai".
             await self.orchestrator.dispatch_worker_prompt(
                 manager_id=manager_id,
-                provider="z_ai",
+                provider="zai",  # Canonical key: matches extension/content-scripts/ adapter filename
                 prompt=master_prompt
             )
 
@@ -91,7 +93,7 @@ class SwarmManagerNode:
                 # Re-dispatch correction prompt down the WebSocket
                 await self.orchestrator.dispatch_worker_prompt(
                     manager_id=manager_id,
-                    provider="z_ai",
+                    provider="zai",  # Same canonical key
                     prompt=correction_prompt
                 )
                 logger.info("Reflexion loop complete. Code successfully self-healed and committed.")

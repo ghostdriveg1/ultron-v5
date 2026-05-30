@@ -11,10 +11,9 @@ from __future__ import annotations
 import os
 import json
 import logging
-import asyncio
 import httpx
 from typing import AsyncGenerator
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from sse_starlette.sse import EventSourceResponse
 from pydantic import BaseModel

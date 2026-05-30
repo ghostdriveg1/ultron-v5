@@ -22,8 +22,10 @@ import { sleep } from './utils/timing.js';
 // worker, we reconnect to Nancy with the same ID so in-flight tasks are not lost.
 let EXTENSION_ID = 'nancy-extension-pending';
 let activeReader = null;
-let reconnectTimer = null;
 let currentTaskMap = new Map(); // task_id -> { providerKey, tabId }
+
+// NOTE: We do NOT use setTimeout for reconnect — it does not survive MV3 SW restarts.
+// Instead we use chrome.alarms which are persistent across SW lifecycle events.
 
 async function getOrCreateExtensionId() {
   const stored = await new Promise(resolve => chrome.storage.local.get('extensionId', resolve));
@@ -81,6 +83,8 @@ chrome.tabs.onRemoved.addListener(() => {
 chrome.runtime.onInstalled.addListener(async () => {
   await getOrCreateExtensionId();
   await storage.resetState();
+  // Explicitly mark disconnected so connection_check alarm fires reconnect immediately
+  await storage.setState({ connected: false });
   await storage.appendLog('info', `Nancy installed. Extension ID: ${EXTENSION_ID}`);
   
   // Enable opening side panel when clicking the extension icon
@@ -95,7 +99,10 @@ chrome.runtime.onInstalled.addListener(async () => {
 
 chrome.runtime.onStartup.addListener(async () => {
   await getOrCreateExtensionId();
-  await storage.appendLog('info', 'Nancy service worker started.');
+  // Always reset connected=false on SW startup — a killed SW means the old SSE reader is gone.
+  // This ensures connection_check alarm immediately triggers reconnect.
+  await storage.setState({ connected: false });
+  await storage.appendLog('info', 'Nancy service worker restarted. Resetting connection state.');
 
   // ── URL Migration: update old default HF Space URL to local dev URL ──
   const currentState = await storage.getState();
@@ -118,9 +125,10 @@ chrome.runtime.onStartup.addListener(async () => {
 
 // ─── Alarms & Keep-Alive ─────────────────────────────────────────────────────
 function setupAlarms() {
-  // Alarms keep the worker alive and schedule periodic heartbeats
+  // Alarms keep the worker alive and schedule periodic heartbeats.
+  // Using chrome.alarms (NOT setTimeout) — alarms survive MV3 service worker restarts.
   chrome.alarms.clearAll(() => {
-    chrome.alarms.create('heartbeat', { periodInMinutes: 0.4 }); // Every ~24s
+    chrome.alarms.create('heartbeat', { periodInMinutes: 0.4 });        // Every ~24s
     chrome.alarms.create('connection_check', { periodInMinutes: 1.0 }); // Every 60s
   });
 }
@@ -132,10 +140,14 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   } else if (alarm.name === 'connection_check') {
     const state = await storage.getState();
     if (!state.connected) {
-      await storage.appendLog('warn', 'Connection check: offline. Reconnecting...');
+      await storage.appendLog('warn', 'Connection check: offline. Triggering reconnect via alarm...');
       connectToServer();
     }
     await scanOpenTabs();
+  } else if (alarm.name === 'reconnect') {
+    // Fired by scheduleReconnect() — replaces the old setTimeout approach
+    await storage.appendLog('info', 'Reconnect alarm fired. Attempting to re-establish SSE connection...');
+    connectToServer();
   }
 });
 
@@ -157,12 +169,15 @@ async function connectToServer() {
   const url = state.hfSpaceUrl;
   const key = state.apiKey || 'nancy_ext_sec_8d4f0b21a3672d9e18b5'; // Fallback to extension secret
 
+  // ── DIAGNOSTIC LOGGING (visible in side panel) ───────────────────────────
+  // These logs are critical for debugging connection issues without DevTools.
   if (!url) {
-    await storage.appendLog('error', 'Nancy Server URL not configured.');
+    await storage.appendLog('error', '❌ Nancy Server URL is not configured. Open the side panel and set the Nancy URL.');
     return;
   }
 
-  await storage.appendLog('info', `Connecting to Nancy server at ${url}...`);
+  const maskedKey = key.length > 8 ? key.substring(0, 6) + '...' + key.slice(-4) : '(empty)';
+  await storage.appendLog('info', `🔌 Connecting to Nancy: ${url} | Key: ${maskedKey} | ExtID: ${EXTENSION_ID.slice(-8)}`);
   await storage.setState({ connected: false });
 
   const streamUrl = `${url.replace(/\/$/, '')}/ext/tasks/stream?extension_id=${EXTENSION_ID}`;
@@ -177,11 +192,15 @@ async function connectToServer() {
     });
 
     if (!response.ok) {
-      throw new Error(`Server returned HTTP ${response.status}: ${response.statusText}`);
+      // Capture response body for better error diagnosis
+      let errBody = '';
+      try { errBody = await response.text(); } catch {}
+      const errMsg = `HTTP ${response.status} ${response.statusText}${errBody ? ': ' + errBody.substring(0, 120) : ''}`;
+      throw new Error(errMsg);
     }
 
     await storage.setState({ connected: true });
-    await storage.appendLog('info', 'SSE connection established successfully.');
+    await storage.appendLog('info', '✅ SSE connection established successfully. Waiting for tasks...');
 
     const reader = response.body.getReader();
     activeReader = reader;
@@ -201,30 +220,44 @@ async function connectToServer() {
         if (event.event === 'task') {
           try {
             const task = JSON.parse(event.data);
-            await storage.appendLog('info', `Received task ${task.task_id} for ${task.provider}`);
+            await storage.appendLog('info', `📋 Received task ${task.task_id} → provider: ${task.provider}`);
             // Fire-and-forget task execution
             executeTask(task);
           } catch (e) {
-            await storage.appendLog('error', `Failed to parse task: ${e.message}`);
+            await storage.appendLog('error', `Failed to parse task payload: ${e.message}`);
           }
         } else if (event.event === 'ping') {
-          // Keep-alive heartbeat acknowledgement
+          // Enhanced ping: parse queue size if available
+          try {
+            const pingData = JSON.parse(event.data);
+            if (pingData && pingData.queue_size !== undefined) {
+              await storage.appendLog('info', `💓 Ping OK | Nancy queue: ${pingData.queue_size} pending tasks`);
+            }
+          } catch {
+            // Simple keep-alive ping with no JSON data
+          }
           await storage.updateProvider('chatgpt', { lastSeen: Date.now() });
         }
       }
     }
   } catch (err) {
     await storage.setState({ connected: false });
-    await storage.appendLog('error', `SSE connection error: ${err.message}`);
+    await storage.appendLog('error', `❌ SSE error: ${err.message}`);
     scheduleReconnect();
   }
 }
 
+/**
+ * Schedule a reconnect attempt using chrome.alarms (MV3-safe).
+ * Unlike setTimeout, chrome.alarms survive service worker restarts.
+ */
 function scheduleReconnect() {
-  if (reconnectTimer) clearTimeout(reconnectTimer);
-  reconnectTimer = setTimeout(() => {
-    connectToServer();
-  }, 10000); // Reconnect after 10 seconds
+  // Clear any existing reconnect alarm before creating a new one
+  chrome.alarms.clear('reconnect', () => {
+    // Delay 15 seconds before next attempt to avoid hammering the server
+    chrome.alarms.create('reconnect', { delayInMinutes: 0.25 }); // ~15 seconds
+    logger('Reconnect alarm scheduled for ~15 seconds.');
+  });
 }
 
 // ─── Heartbeat ───────────────────────────────────────────────────────────────

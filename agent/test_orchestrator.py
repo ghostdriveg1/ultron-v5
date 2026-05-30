@@ -3,7 +3,6 @@ import asyncio
 import json
 import logging
 import sys
-from typing import List
 
 # Setup standard logging to stdout
 logging.basicConfig(

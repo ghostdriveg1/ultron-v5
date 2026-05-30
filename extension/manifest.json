@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Nancy — Free LLM Router",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Browser-side relay that converts free chatbot UIs into OpenAI-compatible API endpoints via Nancy HF Space.",
   "minimum_chrome_version": "116",
 

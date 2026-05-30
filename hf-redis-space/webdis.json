@@ -24,6 +24,11 @@
       ]
     },
     {
+      "enabled": [
+        "PING"
+      ]
+    },
+    {
       "http_profile": "nancy_admin",
       "enabled": [
         "PING",

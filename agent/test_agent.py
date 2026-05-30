@@ -28,7 +28,7 @@ BASE_URL = os.getenv("NANCY_BASE_URL", "http://localhost:7860/v1")
 API_KEY = os.getenv("NANCY_API_KEY", "nancy-dev-key")
 
 print("=" * 60)
-print(f"Nancy Test Agent Harness Initialized")
+print("Nancy Test Agent Harness Initialized")
 print(f"Target URL: {BASE_URL}")
 print(f"API Key:    {API_KEY[:6]}...{API_KEY[-4:] if len(API_KEY) > 10 else ''}")
 print("=" * 60)
@@ -127,7 +127,7 @@ def test_failover():
 # ─── Verification Scenario 4: Sessions & Tool-Calling ──────────────────────────
 
 def test_session_management(model="chatgpt"):
-    print(f"\n[SCENARIO 4] Testing Multi-Tab session creation, URL updates, and resumption...")
+    print("\n[SCENARIO 4] Testing Multi-Tab session creation, URL updates, and resumption...")
     try:
         session_id = f"test-sess-{uuid.uuid4().hex[:8]}"
         
@@ -138,7 +138,7 @@ def test_session_management(model="chatgpt"):
             messages=[
                 {"role": "user", "content": "Let's start a fresh conversation. My name is Alex. Remember this name."}
             ],
-            user=f"new_chat", # instruction keyword to spawn fresh tab session
+            user="new_chat", # instruction keyword to spawn fresh tab session
             stream=False
         )
         
@@ -174,7 +174,7 @@ def test_session_management(model="chatgpt"):
             user=f"session:{target_sess_id}", # Instruct to resume saved conversation
             stream=False
         )
-        print(f"✔ Session response received:")
+        print("✔ Session response received:")
         print(f"  Content: {response2.choices[0].message.content.strip()}")
         
         if "alex" in response2.choices[0].message.content.lower():
@@ -230,7 +230,7 @@ def test_hybrid_api():
 # ─── Verification Scenario 6: Real-time Chunk Streaming (SSE) ───────────────────
 
 async def test_streaming(model="chatgpt"):
-    print(f"\n[SCENARIO 6] Testing real-time chunk-by-chunk streaming...")
+    print("\n[SCENARIO 6] Testing real-time chunk-by-chunk streaming...")
     try:
         start_time = time.time()
         stream = await async_client.chat.completions.create(

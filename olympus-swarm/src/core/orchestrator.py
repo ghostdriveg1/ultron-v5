@@ -19,10 +19,22 @@ class SwarmOrchestrator:
         self.concurrency_semaphore = asyncio.Semaphore(5)  # Default Balanced
         self._lock = asyncio.Lock()
 
+        # Maps transaction_id -> asyncio.Future for resolving WebSocket responses
+        self.pending_transactions: dict[str, asyncio.Future] = {}
+        # Maps manager_id -> asyncio.Task for the background reader loop
+        self.reader_tasks: dict[str, asyncio.Task] = {}
+
     async def register_profile(self, manager_id: str, websocket: WebSocket) -> None:
         """Registers an active Brave profile WebSocket connection and handles state acceleration."""
         async with self._lock:
             self.connected_profiles[manager_id] = websocket
+
+            # Start background reader task for this WebSocket if not already running
+            if manager_id not in self.reader_tasks or self.reader_tasks[manager_id].done():
+                self.reader_tasks[manager_id] = asyncio.create_task(
+                    self._websocket_reader_loop(manager_id, websocket)
+                )
+
             logger.info(f"Brave Profile registered for {manager_id}. WebSocket connected.")
 
             # Day acceleration trigger: ULTRON_MAX
@@ -37,6 +49,10 @@ class SwarmOrchestrator:
             if manager_id in self.connected_profiles:
                 del self.connected_profiles[manager_id]
                 logger.info(f"Brave Profile {manager_id} unregistered.")
+
+            if manager_id in self.reader_tasks:
+                self.reader_tasks[manager_id].cancel()
+                del self.reader_tasks[manager_id]
 
             # Night shift standby trigger: LEGIT_API_STANDBY
             if len(self.connected_profiles) == 0 and self.swarm_mode == "ULTRON_MAX":
@@ -74,20 +90,55 @@ class SwarmOrchestrator:
                 "prompt": prompt
             }
 
-            await ws.send_text(json.dumps(payload))
-            logger.info(f"Dispatched prompt down Brave Profile WS for transaction: {tx_id} | Provider: {provider}")
+            # Create a future to wait for the response
+            loop = asyncio.get_event_loop()
+            future = loop.create_future()
+            self.pending_transactions[tx_id] = future
 
-            # Wait loop for streamed result completion
             try:
-                async for message in ws:
+                await ws.send_text(json.dumps(payload))
+                logger.info(f"Dispatched prompt down Brave Profile WS for transaction: {tx_id} | Provider: {provider}")
+
+                # Wait for the background reader to resolve the future
+                # Timeout after 120 seconds to prevent indefinite hangs
+                result = await asyncio.wait_for(future, timeout=120.0)
+                logger.info(f"Transaction completed successfully: {tx_id}")
+                return result
+
+            except TimeoutError:
+                logger.error(f"Transaction timeout: {tx_id}")
+                raise RuntimeError(f"Timeout waiting for response from provider {provider}")
+            except Exception as e:
+                logger.error(f"Error during transaction {tx_id}: {e}")
+                raise RuntimeError(f"Brave UI extension execution error: {str(e)}")
+            finally:
+                # Cleanup the future
+                self.pending_transactions.pop(tx_id, None)
+
+    async def _websocket_reader_loop(self, manager_id: str, ws: WebSocket) -> None:
+        """Background task that reads messages from a WebSocket and resolves pending futures."""
+        try:
+            while True:
+                message = await ws.receive_text()
+                try:
                     data = json.loads(message)
-                    if data.get("transaction_id") == tx_id:
-                        if data.get("event") == "stream_chunk" and data.get("status") == "completed":
-                            logger.info(f"Transaction completed successfully: {tx_id}")
-                            return str(data.get("chunk", ""))
-                        elif data.get("event") == "error":
-                            raise RuntimeError(f"Brave UI extension execution error: {data.get('error')}")
-            except WebSocketDisconnect:
-                logger.error(f"WebSocket disconnected during transaction: {tx_id}")
-                raise ConnectionError(f"Brave Profile {manager_id} connection lost.")
-            return ""
+                    tx_id = data.get("transaction_id")
+
+                    if tx_id and tx_id in self.pending_transactions:
+                        future = self.pending_transactions[tx_id]
+                        if not future.done():
+                            if data.get("event") == "stream_chunk" and data.get("status") == "completed":
+                                future.set_result(str(data.get("chunk", "")))
+                            elif data.get("event") == "error":
+                                future.set_exception(RuntimeError(data.get("error", "Unknown error")))
+                except json.JSONDecodeError:
+                    logger.warning(f"Failed to parse WebSocket message from {manager_id}: {message}")
+                except Exception as e:
+                    logger.error(f"Error processing WebSocket message from {manager_id}: {e}")
+
+        except WebSocketDisconnect:
+            logger.warning(f"WebSocket disconnected in reader loop for {manager_id}")
+        except asyncio.CancelledError:
+            logger.info(f"WebSocket reader loop cancelled for {manager_id}")
+        finally:
+            await self.unregister_profile(manager_id)

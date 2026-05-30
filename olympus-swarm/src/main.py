@@ -43,6 +43,16 @@ integration_config = {
     "latency_ms": 0.0
 }
 
+# Canonical provider key map — must match Nancy's router AND extension adapter keys.
+# Use these keys everywhere: manager dispatch, swarm-all rotation, log entries.
+PROVIDER_CANONICAL_MAP = {
+    "chatgpt": "gpt-4o",
+    "gemini":  "gemini-2.0-flash",
+    "deepseek": "deepseek-chat",
+    "kimi":    "kimi",
+    "zai":     "zai",
+}
+
 # Swarm Logs Buffer for live dashboard terminal rendering
 swarm_logs: list[dict[str, Any]] = []
 
@@ -79,6 +89,24 @@ async def lifespan(app: FastAPI):
             logger.info(f"Hydrated Nancy Integration Settings from cache: {saved_url}")
     except Exception as e:
         logger.error(f"Failed to hydrate integration from Redis: {e}")
+
+    # Auto-validate Nancy connection on boot if credentials are available
+    if integration_config["nancy_url"] and integration_config["nancy_key"]:
+        try:
+            async with httpx.AsyncClient(timeout=6.0) as client:
+                r = await client.get(
+                    integration_config["nancy_url"].rstrip("/") + "/health",
+                )
+                if r.status_code == 200:
+                    integration_config["status"] = "CONNECTED"
+                    latency = r.elapsed.total_seconds() * 1000
+                    integration_config["latency_ms"] = latency
+                    log_swarm_activity("SYSTEM", f"✅ Nancy Gateway auto-linked on boot. Latency: {latency:.1f}ms", "INFO")
+                else:
+                    log_swarm_activity("SYSTEM", f"⚠️ Nancy auto-link: HTTP {r.status_code}. Check Nancy URL.", "WARNING")
+        except Exception as e:
+            log_swarm_activity("SYSTEM", f"⚠️ Nancy auto-link failed on boot: {e}. Will retry on manual save.", "WARNING")
+
     yield
     logger.info("Stopping Ultron Swarm Control Center...")
 
@@ -712,7 +740,7 @@ ULTRON_DASHBOARD_HTML = """
                     <div class="glass-card worker-card" id="card-worker-kimi" style="cursor: pointer;" onclick="openInspector('kimi')">
                         <div class="card-header">
                             <span class="agent-title">🌙 Kimi Chat</span>
-                            <div class="pulse-light" id="light-worker-worker-kimi"></div>
+                            <div class="pulse-light" id="light-worker-kimi"></div>
                         </div>
                         <div class="agent-role" style="margin-bottom: 0.4rem;">Brave profile slot 4</div>
                         <div class="agent-bubble" id="bubble-worker-kimi">Offline</div>
@@ -744,7 +772,12 @@ ULTRON_DASHBOARD_HTML = """
                         <input type="password" id="nancy-key" class="api-input" placeholder="ny_********************************" value="{nancy_key}" />
                     </div>
 
-                    <button class="refresh-btn" onclick="saveIntegration()">SAVE & CONNECT GATEWAY</button>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="refresh-btn" style="flex:1;" onclick="saveIntegration()">SAVE &amp; CONNECT GATEWAY</button>
+                        <button class="refresh-btn" id="validate-btn" style="flex:0 0 auto; width:auto; padding: 0.4rem 0.8rem; background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.4);" onclick="validateNancy()">🔍 VALIDATE LIVE</button>
+                    </div>
+
+                    <div id="validate-result" style="display: none; margin-top: 0.6rem; padding: 0.5rem 0.8rem; border-radius: 8px; font-size: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); line-height: 1.8;"></div>
 
                     <div id="latency-display" style="display: none; margin-top: 0.8rem; text-align: center; font-size: 0.8rem; color: var(--accent);">
                         ✅ Linked! Latency: <strong id="latency-ms">0ms</strong>
@@ -908,6 +941,56 @@ ULTRON_DASHBOARD_HTML = """
             }
         }
 
+        async function validateNancy() {
+            const btn = document.getElementById("validate-btn");
+            const resultDiv = document.getElementById("validate-result");
+            btn.disabled = true;
+            btn.innerText = "Checking...";
+            resultDiv.style.display = "block";
+            resultDiv.innerHTML = "⏳ Running live validation against Nancy...";
+
+            try {
+                const resp = await fetch("/admin/validate-nancy");
+                const d = await resp.json();
+
+                let html = "";
+                html += d.connected
+                    ? `✅ <b>Nancy Gateway:</b> CONNECTED (${d.latency_ms}ms)<br>`
+                    : `❌ <b>Nancy Gateway:</b> OFFLINE — ${d.error || 'No response'}<br>`;
+
+                if (d.redis) {
+                    const r = d.redis;
+                    html += r.redis === 'ok'
+                        ? `✅ <b>Redis/Webdis:</b> OK (${r.latency_ms}ms)<br>`
+                        : `❌ <b>Redis/Webdis:</b> ${r.redis.toUpperCase()} — ${r.detail}<br>`;
+                }
+
+                if (d.extension_status) {
+                    const ext = d.extension_status;
+                    const count = ext.active_extension_count || 0;
+                    html += count > 0
+                        ? `✅ <b>Extension SSE:</b> ${count} connection(s) active<br>`
+                        : `⚠️ <b>Extension SSE:</b> No connections! Open Brave + load Nancy extension.<br>`;
+                    if (ext.queue) {
+                        html += `📋 <b>Queue:</b> ${ext.queue.pending || 0} pending / ${ext.queue.active || 0} active<br>`;
+                    }
+                }
+
+                if (d.active_extensions !== undefined) {
+                    html += d.active_extensions > 0
+                        ? `✅ <b>Extensions on Nancy:</b> ${d.active_extensions}<br>`
+                        : `⚠️ <b>Extensions on Nancy:</b> None connected.<br>`;
+                }
+
+                resultDiv.innerHTML = html;
+            } catch (e) {
+                resultDiv.innerHTML = `❌ Validation request failed: ${e}`;
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "🔍 VALIDATE LIVE";
+            }
+        }
+
         function formatTime(timestamp) {
             const d = new Date(timestamp * 1000);
             return d.toTimeString().split(' ')[0];
@@ -1041,6 +1124,62 @@ ULTRON_DASHBOARD_HTML = """
             }
         }
 
+        async function pollNancyStatus() {
+            try {
+                const resp = await fetch("/admin/validate-nancy");
+                const d = await resp.json();
+                
+                // Update integration status badge automatically
+                const badge = document.getElementById("connection-status-badge");
+                const badgeText = document.getElementById("connection-status-text");
+                const latDiv = document.getElementById("latency-display");
+                const latVal = document.getElementById("latency-ms");
+                
+                if (d.connected) {
+                    badge.className = "status-badge status-active";
+                    badgeText.innerText = "CONNECTED";
+                    latDiv.style.display = "block";
+                    latVal.innerText = d.latency_ms.toFixed(1) + "ms";
+                } else {
+                    badge.className = "status-badge status-offline";
+                    badgeText.innerText = "OFFLINE";
+                    latDiv.style.display = "none";
+                }
+
+                // Update Worker UI Cards
+                if (d.extension_status && d.extension_status.queue) {
+                    const q = d.extension_status.queue;
+                    // The queue is shared among all extensions, but we can show it on the UI
+                    // so the user knows if tasks are piling up.
+                    const pending = q.pending || 0;
+                    
+                    // We just update the bubbles slightly to indicate queue status if they are idle
+                    const workers = ["chatgpt", "gemini", "deepseek", "kimi"];
+                    for (const w of workers) {
+                        const bubble = document.getElementById("bubble-worker-" + w);
+                        const light = document.getElementById("light-worker-" + w);
+                        if (bubble && !swarmCache[w]) {
+                            if (d.active_extensions > 0) {
+                                bubble.innerText = pending > 0 ? `Idle (${pending} queued tasks)` : "Standby - Ready";
+                                if (light && light.className === "pulse-light") {
+                                    light.style.background = "var(--success)";
+                                    light.style.boxShadow = "0 0 8px var(--success)";
+                                }
+                            } else {
+                                bubble.innerText = "Offline - No Extension connected";
+                                if (light && light.className === "pulse-light") {
+                                    light.style.background = "var(--error)";
+                                    light.style.boxShadow = "none";
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                // Silently fail background polling
+            }
+        }
+
         async function loadLogs() {
             try {
                 const resp = await fetch("/admin/logs");
@@ -1162,10 +1301,14 @@ ULTRON_DASHBOARD_HTML = """
         document.addEventListener("DOMContentLoaded", () => {
             // Initial poll load
             loadLogs();
-            updateStatus();
+            setInterval(pollSwarmState, 2000);
+            setInterval(loadLogs, 2500);
+            setInterval(pollNancyStatus, 8000);
 
-            setInterval(loadLogs, 2000);
-            setInterval(updateStatus, 3000);
+            // Run immediately
+            pollSwarmState();
+            loadLogs();
+            pollNancyStatus();
         });
     </script>
 </body>
@@ -1255,6 +1398,27 @@ async def run_swarm_dispatch_task(url: str, key: str, model: str, prompt: str) -
         "metadata": {}
     }
 
+    # ── GATE CHECKS: Validate pre-conditions before spending any API budget ──────────
+    # Gate 1: Nancy URL and key must be configured
+    if not url or not key:
+        log_swarm_activity("SYSTEM", "❌ ABORT: Nancy Gateway URL or API key not configured. Go to dashboard → save Gateway credentials first.", "ERROR")
+        return
+
+    # Gate 2: Check extension SSE connections (non-fatal warning)
+    try:
+        async with httpx.AsyncClient(timeout=4.0) as _client:
+            _r = await _client.get(f"{url.rstrip('/')}/ext/status")
+            if _r.status_code == 200:
+                _ext_data = _r.json()
+                _ext_count = _ext_data.get("active_extension_count", 0)
+                if _ext_count == 0:
+                    log_swarm_activity("SYSTEM", "⚠️ WARNING: No browser extension SSE connections detected on Nancy. Tasks will be queued but the Brave browser must have the Nancy extension running and connected.", "WARNING")
+                else:
+                    log_swarm_activity("SYSTEM", f"✅ Gate check passed: {_ext_count} extension(s) connected to Nancy.", "INFO")
+    except Exception as _gate_err:
+        log_swarm_activity("SYSTEM", f"⚠️ Could not check extension status: {_gate_err}. Proceeding anyway.", "WARNING")
+    # ──────────────────────────────────────────────────────────────────────────────────
+
     try:
         # ─── TIER 1: SENATOR AUDIT ───
         log_swarm_activity("SENATOR", f"Supreme Auditor auditing new planning request: '{prompt[:60]}...'", "INFO")
@@ -1339,7 +1503,8 @@ async def run_swarm_dispatch_task(url: str, key: str, model: str, prompt: str) -
             # Dynamic worker routing for swarm-all
             target_worker_model = model
             if model == "swarm-all":
-                active_workers = ["deepseek-chat", "gemini-2.0-flash", "kimi", "gpt-4o"]
+                # Use canonical provider keys that match Nancy router AND extension adapters
+                active_workers = list(PROVIDER_CANONICAL_MAP.values())  # ["gpt-4o", "gemini-2.0-flash", "deepseek-chat", "kimi", "zai"]
                 target_worker_model = active_workers[idx % len(active_workers)]
                 log_swarm_activity("MANAGER", f"Empire Swarm dynamic dispatch: mapping task #{idx+1} to Chatbot worker '{target_worker_model.upper()}'...", "INFO")
 
@@ -1417,8 +1582,21 @@ async def run_swarm_dispatch_task(url: str, key: str, model: str, prompt: str) -
 
             log_swarm_activity("MANAGER", f"Received completed text output ({len(scraped_output)} chars) from Nancy worker.", "INFO")
 
-            # Relay completed chatbot output back under its specific logging name!
-            worker_log_key = target_worker_model.replace("api-", "").split("-")[0].replace("gpt", "chatgpt").upper()
+            # Relay completed chatbot output back under its specific logging name
+            # Map model name back to a canonical log key matching the dashboard sender CSS class
+            _model_lower = target_worker_model.lower()
+            if "gpt" in _model_lower or "chatgpt" in _model_lower:
+                worker_log_key = "CHATGPT"
+            elif "gemini" in _model_lower:
+                worker_log_key = "GEMINI"
+            elif "deepseek" in _model_lower:
+                worker_log_key = "DEEPSEEK"
+            elif "kimi" in _model_lower:
+                worker_log_key = "KIMI"
+            elif "zai" in _model_lower or "z.ai" in _model_lower:
+                worker_log_key = "ZAI"
+            else:
+                worker_log_key = target_worker_model.split("-")[0].upper()
             log_swarm_activity(worker_log_key, scraped_output, "INFO")
 
             # Local Verification & Reflexion Loop
@@ -1494,6 +1672,59 @@ async def dispatch_swarm_prompt(payload: dict = Body(...)):
     asyncio.create_task(run_swarm_dispatch_task(url, key, model, prompt))
     return {"success": True, "message": "Swarm task dispatched successfully."}
 
+
+
+@app.get("/admin/validate-nancy")
+async def validate_nancy_connection():
+    """Live Nancy gateway connectivity check. Calls Nancy /health + /ext/status and returns results."""
+    url = integration_config.get("nancy_url", "").strip().rstrip("/")
+    key = integration_config.get("nancy_key", "").strip()
+
+    if not url:
+        return {"connected": False, "error": "Nancy URL not configured"}
+
+    result = {"url": url, "connected": False}
+    start = time.time()
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            r = await client.get(f"{url}/health")
+            latency = (time.time() - start) * 1000
+            result["latency_ms"] = round(latency, 1)
+
+            if r.status_code == 200:
+                data = r.json()
+                result["connected"] = True
+                result["nancy_status"] = data.get("status", "ok")
+                result["active_extensions"] = data.get("active_extensions", 0)
+                integration_config["status"] = "CONNECTED"
+                integration_config["latency_ms"] = latency
+
+                # Also fetch Redis health
+                try:
+                    redis_r = await client.get(f"{url}/health/redis")
+                    if redis_r.status_code == 200:
+                        result["redis"] = redis_r.json()
+                except Exception:
+                    pass
+
+                # Also fetch extension count
+                try:
+                    ext_r = await client.get(f"{url}/ext/status")
+                    if ext_r.status_code == 200:
+                        result["extension_status"] = ext_r.json()
+                except Exception:
+                    pass
+
+                log_swarm_activity("SYSTEM", f"✅ Nancy validated: CONNECTED ({latency:.1f}ms) | Extensions: {result.get('active_extensions', 0)}", "INFO")
+            else:
+                result["error"] = f"HTTP {r.status_code}"
+                integration_config["status"] = "UNLINKED"
+    except Exception as e:
+        result["error"] = str(e)
+        integration_config["status"] = "OFFLINE"
+        log_swarm_activity("SYSTEM", f"❌ Nancy validation failed: {e}", "ERROR")
+
+    return result
 
 
 @app.post("/admin/concurrency")
