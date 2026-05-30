@@ -68,12 +68,14 @@ These details are active inside the active execution runtime environments (do no
   * Master API Key (`NANCY_API_KEY`): Defaults to `'nancy-dev-key'`
   * Extension Secret (`NANCY_EXT_SECRET`): Defaults to `'nancy-ext-dev-secret'`
   * *Note: The extension can authenticate using either key thanks to our new dynamic key bridging.*
-* **Memory & Storage Keys**:
+* **Memory, Storage & Deployment Keys**:
+  * **Hugging Face Space Nancy Token (`HF_TOKEN_NANCY`)**: *[Configured securely inside your local root .env file]*
+  * **Hugging Face Space Ultron Token (`HF_TOKEN_ULTRON`)**: *[Configured securely inside your local root .env file]*
+  * **GitHub Personal Access Token (`GITHUB_PAT`)**: *[Configured securely inside your local root .env file]*
   * **Upstash Redis REST Client**: Pinned REST endpoint URL & token maps.
   * **Groq API Keys**: 3 Groq keys registered directly in the Upstash quota pool (`vault:api_pool:llama3`), managed dynamically by Sentinel for Llama 3.3 70B prompt compilation.
   * **Recall Store**: Turso SQLite endpoint mapping daily logs.
   * **Archival Store**: Xata Postgres database mapping semantic memory vectors.
-  * **Cloud Object Vault**: Cloudflare R2 AWS S3 storage buckets containing daily transcripts and database snapshots.
 
 ---
 
