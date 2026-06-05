@@ -1,0 +1,22 @@
+{
+    "redis_host": "127.0.0.1",
+    "redis_port": 6379,
+    "redis_auth": "",
+    "http_host": "0.0.0.0",
+    "port": 7860,
+    "db_filename": "webdis.db",
+    "logfile": "/var/log/webdis.log",
+    "verbosity": "notice",
+    "daemonize": false,
+    "websockets": {
+        "enabled": false
+    },
+    "pool_size": 10,
+    "http_max_request_size": 128000000,
+    "threads": 4,
+    "acl": [
+        {
+            "disabled": ["DEBUG", "CONFIG", "SLAVEOF", "REPLICAOF", "SHUTDOWN"]
+        }
+    ]
+}

@@ -1,29 +1,36 @@
-# Byte-compiled / optimized / DLL files
+# Olympus V5 — .gitignore
+
+# Rust
+target/
+Cargo.lock
+
+# Python
 __pycache__/
-*.py[cod]
-*$py.class
-
-# Caches
-.pytest_cache/
-.ruff_cache/
-.ipynb_checkpoints/
-
-# Virtual Environments
-venv/
+*.pyc
+*.pyo
 .venv/
-env/
-.env/
+*.egg-info/
+dist/
 
-# Node.js
+# Secrets — NEVER commit these
+.env
+.env.*
+secrets/
+*.pem
+*.key
+
+# Node (if any)
 node_modules/
-npm-debug.log*
 
-# Environment and Secrets
-*.env
-secrets.json
-credentials.env
-
-# System / OS files
+# OS
 .DS_Store
 Thumbs.db
-*.log
+
+# IDX / Editor
+.idx/
+.vscode/
+.idea/
+
+# Build artifacts
+*.tar.gz
+*.zip

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Olympus V5 — Ultron Control Panel</title>
+  <meta name="description" content="Olympus V5 Distributed Cognitive Cluster — Real-time control panel for the 5-Space Swarm Architecture" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/dashboard/style.css" />
+</head>
+<body>
+  <!-- Animated background -->
+  <div class="bg-grid"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 40 40" fill="none">
+          <polygon points="20,2 38,38 2,38" fill="none" stroke="url(#grad)" stroke-width="2.5"/>
+          <circle cx="20" cy="20" r="6" fill="url(#grad)"/>
+          <defs>
+            <linearGradient id="grad" x1="0" y1="0" x2="40" y2="40">
+              <stop offset="0%" stop-color="#7c3aed"/>
+              <stop offset="100%" stop-color="#06b6d4"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-title">OLYMPUS V5</div>
+        <div class="logo-sub">Cognitive Cluster</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="nav-item active" data-page="dashboard" id="nav-dashboard" onclick="switchPage('dashboard')">
+        <span class="nav-icon">⬡</span> Dashboard
+      </a>
+      <a class="nav-item" data-page="keys" id="nav-keys" onclick="switchPage('keys')">
+        <span class="nav-icon">⬡</span> Key Manager
+      </a>
+      <a class="nav-item" data-page="memory" id="nav-memory" onclick="switchPage('memory')">
+        <span class="nav-icon">⬡</span> Memory Browser
+      </a>
+      <a class="nav-item" data-page="rnd" id="nav-rnd" onclick="switchPage('rnd')">
+        <span class="nav-icon">⬡</span> R&amp;D Engine
+      </a>
+      <a class="nav-item" data-page="providers" id="nav-providers" onclick="switchPage('providers')">
+        <span class="nav-icon">⬡</span> Providers
+      </a>
+    </nav>
+
+    <div class="sidebar-status">
+      <div class="status-dot" id="global-status-dot"></div>
+      <span id="global-status-text">Connecting...</span>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+
+    <!-- ── PAGE: Dashboard ───────────────────────────────────────────── -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <h1 class="page-title">Control Panel</h1>
+        <div class="page-subtitle">5-Space Distributed Cognitive Cluster — Real-time Status</div>
+        <button class="btn btn-ghost" onclick="refreshAll()" id="refresh-btn">
+          <span class="spin-icon" id="spin-icon">↻</span> Refresh
+        </button>
+      </div>
+
+      <!-- Cluster Cards -->
+      <div class="card-grid">
+        <div class="space-card" id="card-gateway">
+          <div class="card-header">
+            <span class="card-badge">SPACE 1</span>
+            <div class="card-status-dot" id="dot-gateway"></div>
+          </div>
+          <div class="card-title">Gateway</div>
+          <div class="card-sub">Rust · Axum · Moka · Tantivy</div>
+          <div class="card-metric" id="metric-gateway">—</div>
+        </div>
+
+        <div class="space-card" id="card-l1">
+          <div class="card-header">
+            <span class="card-badge">SPACE 2</span>
+            <div class="card-status-dot" id="dot-l1"></div>
+          </div>
+          <div class="card-title">OMNIMEM L1</div>
+          <div class="card-sub">Working Memory · Redis+Webdis</div>
+          <div class="card-metric" id="metric-l1">—</div>
+        </div>
+
+        <div class="space-card" id="card-l3">
+          <div class="card-header">
+            <span class="card-badge">SPACE 3</span>
+            <div class="card-status-dot" id="dot-l3"></div>
+          </div>
+          <div class="card-title">OMNIMEM L3</div>
+          <div class="card-sub">Semantic Core · Rules</div>
+          <div class="card-metric" id="metric-l3">—</div>
+        </div>
+
+        <div class="space-card" id="card-l4">
+          <div class="card-header">
+            <span class="card-badge">SPACE 4</span>
+            <div class="card-status-dot" id="dot-l4"></div>
+          </div>
+          <div class="card-title">OMNIMEM L4</div>
+          <div class="card-sub">Procedural Skillbook</div>
+          <div class="card-metric" id="metric-l4">—</div>
+        </div>
+
+        <div class="space-card" id="card-rnd">
+          <div class="card-header">
+            <span class="card-badge">SPACE 5</span>
+            <div class="card-status-dot" id="dot-rnd"></div>
+          </div>
+          <div class="card-title">OMNIMEM R&amp;D</div>
+          <div class="card-sub">Self-Healing Queue</div>
+          <div class="card-metric" id="metric-rnd">—</div>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-label">Total API Keys</div>
+          <div class="stat-value" id="stat-keys">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Available Keys</div>
+          <div class="stat-value" id="stat-avail">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Tantivy Skills</div>
+          <div class="stat-value" id="stat-skills">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Active Proxies</div>
+          <div class="stat-value" id="stat-proxies">—</div>
+        </div>
+      </div>
+
+      <!-- Key Buckets Table -->
+      <div class="panel">
+        <div class="panel-title">Key Pool Buckets</div>
+        <table class="data-table" id="bucket-table">
+          <thead>
+            <tr><th>Provider</th><th>Model</th><th>Total</th><th>Available</th><th>Status</th></tr>
+          </thead>
+          <tbody id="bucket-body">
+            <tr><td colspan="5" class="empty-row">No keys loaded yet — inject via Key Manager</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── PAGE: Key Manager ─────────────────────────────────────────── -->
+    <div class="page" id="page-keys">
+      <div class="page-header">
+        <h1 class="page-title">Key Manager</h1>
+        <div class="page-subtitle">Dynamically inject API keys at runtime — no server restart</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Inject New Key</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Admin Token</label>
+            <input class="form-input" type="password" id="admin-token" placeholder="Your ADMIN_TOKEN secret" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Provider</label>
+            <select class="form-select" id="key-provider">
+              <option value="groq">Groq</option>
+              <option value="openrouter">OpenRouter</option>
+              <option value="gemini">Google Gemini</option>
+              <option value="openai">OpenAI</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Model ID</label>
+            <input class="form-input" type="text" id="key-model" placeholder="e.g. llama3-70b-8192" value="llama3-70b-8192" />
+          </div>
+          <div class="form-group span-2">
+            <label class="form-label">API Key</label>
+            <input class="form-input" type="password" id="key-value" placeholder="gsk_xxxxxxxxxxxxxx" />
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="injectKey()" id="inject-btn">
+          ⚡ Inject Key
+        </button>
+        <div class="result-box" id="inject-result"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Quick Presets</div>
+        <div class="preset-grid">
+          <button class="preset-btn" onclick="setPreset('groq','llama3-70b-8192')">
+            <span>🦙</span> Groq Llama3-70B
+          </button>
+          <button class="preset-btn" onclick="setPreset('groq','mixtral-8x7b-32768')">
+            <span>🔀</span> Groq Mixtral
+          </button>
+          <button class="preset-btn" onclick="setPreset('openrouter','meta-llama/llama-3-70b-instruct')">
+            <span>🌐</span> OR Llama3-70B
+          </button>
+          <button class="preset-btn" onclick="setPreset('openrouter','mistralai/mistral-7b-instruct:free')">
+            <span>🌊</span> OR Mistral-7B (free)
+          </button>
+          <button class="preset-btn" onclick="setPreset('gemini','gemini-1.5-flash')">
+            <span>✨</span> Gemini Flash
+          </button>
+          <button class="preset-btn" onclick="setPreset('openrouter','deepseek/deepseek-chat:free')">
+            <span>🔍</span> DeepSeek (free)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PAGE: Memory Browser ──────────────────────────────────────── -->
+    <div class="page" id="page-memory">
+      <div class="page-header">
+        <h1 class="page-title">Memory Browser</h1>
+        <div class="page-subtitle">Browse L3 Semantic Rules and L4 Skillbook entries</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Query Memory Shard</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Shard</label>
+            <select class="form-select" id="mem-shard">
+              <option value="l3">L3 — Semantic Core</option>
+              <option value="l4">L4 — Skillbook</option>
+            </select>
+          </div>
+          <div class="form-group span-2">
+            <label class="form-label">Key / Hash</label>
+            <input class="form-input" type="text" id="mem-key" placeholder="e.g. architecture OR SHA256 hash" />
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="queryMemory()">🔍 Query</button>
+        <div class="result-box mono" id="memory-result"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Write L3 Rule (MVCC)</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Admin Token</label>
+            <input class="form-input" type="password" id="mem-admin-token" placeholder="ADMIN_TOKEN" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Rule Key</label>
+            <input class="form-input" type="text" id="mem-rule-key" placeholder="e.g. coding_standards" />
+          </div>
+          <div class="form-group span-2">
+            <label class="form-label">Rule Value (Markdown)</label>
+            <textarea class="form-textarea" id="mem-rule-value" rows="5" placeholder="# Rule&#10;Always use..."></textarea>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="writeRule()">💾 Write Rule (MVCC)</button>
+        <div class="result-box" id="rule-result"></div>
+      </div>
+    </div>
+
+    <!-- ── PAGE: R&D Engine ──────────────────────────────────────────── -->
+    <div class="page" id="page-rnd">
+      <div class="page-header">
+        <h1 class="page-title">R&amp;D Engine</h1>
+        <div class="page-subtitle">ACE-2026 Self-Healing Loop — Push errors to the synthesis queue</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Push Error to R&amp;D Queue</div>
+        <div class="form-grid">
+          <div class="form-group span-2">
+            <label class="form-label">Error Message / Stack Trace</label>
+            <textarea class="form-textarea" id="rnd-error" rows="4" placeholder="Paste the full error or stack trace here..."></textarea>
+          </div>
+          <div class="form-group span-2">
+            <label class="form-label">Context (what was the task?)</label>
+            <textarea class="form-textarea" id="rnd-context" rows="3" placeholder="e.g. Running cargo build on gateway/src/main.rs..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Exit Code</label>
+            <input class="form-input" type="number" id="rnd-exit" value="1" />
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="pushError()">🧬 Push to R&amp;D Queue</button>
+        <div class="result-box" id="rnd-result"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Search Tantivy Skillbook</div>
+        <div class="form-grid">
+          <div class="form-group span-2">
+            <label class="form-label">Search Query (error description or hash)</label>
+            <input class="form-input" type="text" id="tantivy-query" placeholder="e.g. borrow checker lifetime error" />
+          </div>
+        </div>
+        <button class="btn btn-secondary" onclick="searchSkills()">🔎 Search Skills</button>
+        <div class="result-box mono" id="tantivy-result"></div>
+      </div>
+    </div>
+
+    <!-- ── PAGE: Providers ────────────────────────────────────────────── -->
+    <div class="page" id="page-providers">
+      <div class="page-header">
+        <h1 class="page-title">Provider Registry</h1>
+        <div class="page-subtitle">Register new OpenAI-compatible endpoints dynamically</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Register Provider</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Admin Token</label>
+            <input class="form-input" type="password" id="prov-admin-token" placeholder="ADMIN_TOKEN" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Provider Name</label>
+            <input class="form-input" type="text" id="prov-name" placeholder="e.g. custom-llm" />
+          </div>
+          <div class="form-group span-2">
+            <label class="form-label">Base URL</label>
+            <input class="form-input" type="text" id="prov-url" placeholder="e.g. https://api.example.com/v1" />
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="registerProvider()">➕ Register Provider</button>
+        <div class="result-box" id="prov-result"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Registered Providers</div>
+        <table class="data-table">
+          <thead>
+            <tr><th>Name</th></tr>
+          </thead>
+          <tbody id="prov-list-body">
+            <tr><td class="empty-row">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="/dashboard/app.js"></script>
+</body>
+</html>

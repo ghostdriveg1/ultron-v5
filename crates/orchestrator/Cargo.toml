@@ -1,0 +1,32 @@
+[package]
+name = "orchestrator"
+version = "0.1.0"
+edition = "2021"
+description = "Olympus V5 — 4-Tier Swarm Orchestrator (Rust)"
+
+[[bin]]
+name = "olympus"
+path = "src/main.rs"
+
+[dependencies]
+# Shared workspace deps
+tokio.workspace       = true
+reqwest.workspace     = true
+serde.workspace       = true
+serde_json.workspace  = true
+anyhow.workspace      = true
+tracing.workspace     = true
+tracing-subscriber.workspace = true
+dotenvy.workspace     = true
+chrono.workspace      = true
+clap.workspace        = true
+
+# Async trait support
+async-trait = "0.1"
+
+# Pretty terminal output
+colored = "2"
+indicatif = "0.17"
+
+# File system helpers
+walkdir = "2"

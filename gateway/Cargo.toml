@@ -1,0 +1,73 @@
+[package]
+name = "gateway"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "gateway"
+path = "src/main.rs"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# HTTP server
+axum = { version = "0.7", features = ["json", "macros"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace", "compression-gzip"] }
+
+# HTTP client (for Webdis + LLM providers)
+reqwest = { version = "0.12", default-features = false, features = [
+    "rustls-tls", "json", "gzip", "deflate", "stream", "socks"
+] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# L0 Moka cache
+moka = { version = "0.12", features = ["future", "sync"] }
+
+# Full-text search (JIT Karpathy compiler)
+tantivy = "0.22"
+
+# Hashing for error signatures
+sha2 = "0.10"
+hex = "0.4"
+
+# Concurrency helpers
+arc-swap = "1"
+dashmap = "6"
+
+# UUIDs
+uuid = { version = "1", features = ["v4"] }
+
+# Random / jitter
+rand = "0.8"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# URL encoding for Webdis keys
+urlencoding = "2"
+
+# Logging / tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Config from env
+dotenvy = "0.15"
+
+# Async trait
+async-trait = "0.1"
+
+# Error handling
+anyhow = "1"
+thiserror = "1"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
