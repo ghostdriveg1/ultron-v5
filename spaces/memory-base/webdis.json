@@ -4,8 +4,8 @@
     "redis_auth": "",
     "http_host": "0.0.0.0",
     "port": 7860,
-    "db_filename": "webdis.db",
-    "logfile": "/var/log/webdis.log",
+    "db_filename": "/app/webdis.db",
+    "logfile": "/app/webdis.log",
     "verbosity": "notice",
     "daemonize": false,
     "websockets": {

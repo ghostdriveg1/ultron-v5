@@ -4,7 +4,8 @@ set -e
 echo "==> Starting Olympus OMNIMEM Shard..."
 
 # Create required directories
-mkdir -p /data /var/log/redis
+mkdir -p /app/data
+cd /app
 
 # Start Redis in background
 echo "==> Launching Redis..."

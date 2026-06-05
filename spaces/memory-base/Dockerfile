@@ -23,14 +23,20 @@ RUN git clone --depth 1 https://github.com/nicolasff/webdis.git /tmp/webdis \
     && chmod +x /usr/local/bin/webdis \
     && rm -rf /tmp/webdis
 
-# Create dirs
-RUN mkdir -p /data /var/log/redis /etc/webdis
+# Create app directory and user
+RUN useradd -m -u 1000 user && \
+    mkdir -p /app/data /etc/webdis && \
+    chown -R user:user /app /etc/webdis /etc/redis /usr/local/bin/webdis
+
+WORKDIR /app
 
 # Copy configs
-COPY redis.conf /etc/redis/redis.conf
-COPY webdis.json /etc/webdis/webdis.json
-COPY start.sh /start.sh
+COPY --chown=user:user redis.conf /etc/redis/redis.conf
+COPY --chown=user:user webdis.json /etc/webdis/webdis.json
+COPY --chown=user:user start.sh /start.sh
 RUN chmod +x /start.sh
+
+USER user
 
 # HF Spaces uses port 7860
 EXPOSE 7860
