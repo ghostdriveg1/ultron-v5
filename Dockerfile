@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM rust:1.79-slim-bookworm AS builder
+FROM rust:slim-bookworm AS builder
 
 # Install build deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
