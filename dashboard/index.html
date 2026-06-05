@@ -39,19 +39,19 @@
 
     <nav class="sidebar-nav">
       <a class="nav-item active" data-page="dashboard" id="nav-dashboard" onclick="switchPage('dashboard')">
-        <span class="nav-icon">⬡</span> Dashboard
+        <span class="nav-icon"></span> Dashboard
       </a>
       <a class="nav-item" data-page="keys" id="nav-keys" onclick="switchPage('keys')">
-        <span class="nav-icon">⬡</span> Key Manager
+        <span class="nav-icon"></span> Key Manager
       </a>
       <a class="nav-item" data-page="memory" id="nav-memory" onclick="switchPage('memory')">
-        <span class="nav-icon">⬡</span> Memory Browser
+        <span class="nav-icon"></span> Memory Browser
       </a>
       <a class="nav-item" data-page="rnd" id="nav-rnd" onclick="switchPage('rnd')">
-        <span class="nav-icon">⬡</span> R&amp;D Engine
+        <span class="nav-icon"></span> R&amp;D Engine
       </a>
       <a class="nav-item" data-page="providers" id="nav-providers" onclick="switchPage('providers')">
-        <span class="nav-icon">⬡</span> Providers
+        <span class="nav-icon"></span> Providers
       </a>
     </nav>
 
@@ -194,7 +194,7 @@
           </div>
         </div>
         <button class="btn btn-primary" onclick="injectKey()" id="inject-btn">
-          ⚡ Inject Key
+           Inject Key
         </button>
         <div class="result-box" id="inject-result"></div>
       </div>
@@ -203,22 +203,22 @@
         <div class="panel-title">Quick Presets</div>
         <div class="preset-grid">
           <button class="preset-btn" onclick="setPreset('groq','llama3-70b-8192')">
-            <span>🦙</span> Groq Llama3-70B
+            <span></span> Groq Llama3-70B
           </button>
           <button class="preset-btn" onclick="setPreset('groq','mixtral-8x7b-32768')">
-            <span>🔀</span> Groq Mixtral
+            <span></span> Groq Mixtral
           </button>
           <button class="preset-btn" onclick="setPreset('openrouter','meta-llama/llama-3-70b-instruct')">
-            <span>🌐</span> OR Llama3-70B
+            <span></span> OR Llama3-70B
           </button>
           <button class="preset-btn" onclick="setPreset('openrouter','mistralai/mistral-7b-instruct:free')">
-            <span>🌊</span> OR Mistral-7B (free)
+            <span></span> OR Mistral-7B (free)
           </button>
           <button class="preset-btn" onclick="setPreset('gemini','gemini-1.5-flash')">
-            <span>✨</span> Gemini Flash
+            <span></span> Gemini Flash
           </button>
           <button class="preset-btn" onclick="setPreset('openrouter','deepseek/deepseek-chat:free')">
-            <span>🔍</span> DeepSeek (free)
+            <span></span> DeepSeek (free)
           </button>
         </div>
       </div>
@@ -246,7 +246,7 @@
             <input class="form-input" type="text" id="mem-key" placeholder="e.g. architecture OR SHA256 hash" />
           </div>
         </div>
-        <button class="btn btn-primary" onclick="queryMemory()">🔍 Query</button>
+        <button class="btn btn-primary" onclick="queryMemory()"> Query</button>
         <div class="result-box mono" id="memory-result"></div>
       </div>
 
@@ -266,7 +266,7 @@
             <textarea class="form-textarea" id="mem-rule-value" rows="5" placeholder="# Rule&#10;Always use..."></textarea>
           </div>
         </div>
-        <button class="btn btn-primary" onclick="writeRule()">💾 Write Rule (MVCC)</button>
+        <button class="btn btn-primary" onclick="writeRule()"> Write Rule (MVCC)</button>
         <div class="result-box" id="rule-result"></div>
       </div>
     </div>
@@ -294,7 +294,7 @@
             <input class="form-input" type="number" id="rnd-exit" value="1" />
           </div>
         </div>
-        <button class="btn btn-primary" onclick="pushError()">🧬 Push to R&amp;D Queue</button>
+        <button class="btn btn-primary" onclick="pushError()"> Push to R&amp;D Queue</button>
         <div class="result-box" id="rnd-result"></div>
       </div>
 
@@ -306,7 +306,7 @@
             <input class="form-input" type="text" id="tantivy-query" placeholder="e.g. borrow checker lifetime error" />
           </div>
         </div>
-        <button class="btn btn-secondary" onclick="searchSkills()">🔎 Search Skills</button>
+        <button class="btn btn-secondary" onclick="searchSkills()"> Search Skills</button>
         <div class="result-box mono" id="tantivy-result"></div>
       </div>
     </div>
@@ -334,7 +334,7 @@
             <input class="form-input" type="text" id="prov-url" placeholder="e.g. https://api.example.com/v1" />
           </div>
         </div>
-        <button class="btn btn-primary" onclick="registerProvider()">➕ Register Provider</button>
+        <button class="btn btn-primary" onclick="registerProvider()"> Register Provider</button>
         <div class="result-box" id="prov-result"></div>
       </div>
 

@@ -113,7 +113,7 @@ async function fetchStatus() {
           <td>${b.total}</td>
           <td>${b.available}</td>
           <td><span style="color: ${b.available > 0 ? 'var(--green)' : 'var(--red)'}">
-            ${b.available > 0 ? '● Active' : '○ Exhausted'}
+            ${b.available > 0 ? ' Active' : ' Exhausted'}
           </span></td>
         </tr>
       `).join('');
@@ -146,7 +146,7 @@ async function injectKey() {
   const resultEl = document.getElementById('inject-result');
 
   if (!token || !model || !key) {
-    showResult(resultEl, 'error', '⚠ Please fill in all fields including Admin Token');
+    showResult(resultEl, 'error', ' Please fill in all fields including Admin Token');
     return;
   }
 
@@ -156,18 +156,18 @@ async function injectKey() {
 
   const { ok, status, data } = await apiPost('/v1/admin/keys', { provider, model, key }, token);
   btn.disabled = false;
-  btn.textContent = '⚡ Inject Key';
+  btn.textContent = ' Inject Key';
 
   if (ok) {
     showResult(resultEl, 'success',
-      `✅ Key injected successfully!\n` +
+      ` Key injected successfully!\n` +
       `Pool size: ${data.pool_stats?.total_keys ?? '?'} keys | ` +
       `Available: ${data.pool_stats?.available_keys ?? '?'}`
     );
     document.getElementById('key-value').value = '';
     fetchStatus();
   } else {
-    showResult(resultEl, 'error', `❌ Error ${status}: ${JSON.stringify(data, null, 2)}`);
+    showResult(resultEl, 'error', ` Error ${status}: ${JSON.stringify(data, null, 2)}`);
   }
 }
 
@@ -182,7 +182,7 @@ async function queryMemory() {
   const key = document.getElementById('mem-key').value.trim();
   const resultEl = document.getElementById('memory-result');
 
-  if (!key) { showResult(resultEl, 'error', '⚠ Enter a key or hash'); return; }
+  if (!key) { showResult(resultEl, 'error', ' Enter a key or hash'); return; }
 
   // Use the chat endpoint to query memory (proxied through gateway)
   // For now, show a helpful message about what to expect
@@ -201,12 +201,12 @@ async function writeRule() {
   const resultEl = document.getElementById('rule-result');
 
   if (!token || !key || !value) {
-    showResult(resultEl, 'error', '⚠ All fields required'); return;
+    showResult(resultEl, 'error', ' All fields required'); return;
   }
 
   // POST the rule as an error push to store it as L3 context
   // In the full version this hits /v1/memory/l3/set
-  showResult(resultEl, 'success', `✅ MVCC write queued for key: ${key}\nVersion will be incremented atomically.`);
+  showResult(resultEl, 'success', ` MVCC write queued for key: ${key}\nVersion will be incremented atomically.`);
 }
 
 // ─── R&D Engine ───────────────────────────────────────────────────────────────
@@ -216,7 +216,7 @@ async function pushError() {
   const exitCode = parseInt(document.getElementById('rnd-exit').value) || 1;
   const resultEl = document.getElementById('rnd-result');
 
-  if (!error) { showResult(resultEl, 'error', '⚠ Enter an error message'); return; }
+  if (!error) { showResult(resultEl, 'error', ' Enter an error message'); return; }
 
   const { ok, data } = await apiPost('/v1/memory/error', {
     error, context: context || 'No context provided', exit_code: exitCode
@@ -224,24 +224,24 @@ async function pushError() {
 
   if (ok) {
     showResult(resultEl, 'success',
-      `✅ Error queued for R&D synthesis\n` +
+      ` Error queued for R&D synthesis\n` +
       `Hash: ${data.error_hash}\n` +
       `Queue depth: ${data.queue_depth}`
     );
     document.getElementById('rnd-error').value = '';
     document.getElementById('rnd-context').value = '';
   } else {
-    showResult(resultEl, 'error', `❌ Failed to queue error: ${JSON.stringify(data, null, 2)}`);
+    showResult(resultEl, 'error', ` Failed to queue error: ${JSON.stringify(data, null, 2)}`);
   }
 }
 
 async function searchSkills() {
   const query = document.getElementById('tantivy-query').value.trim();
   const resultEl = document.getElementById('tantivy-result');
-  if (!query) { showResult(resultEl, 'error', '⚠ Enter a search query'); return; }
+  if (!query) { showResult(resultEl, 'error', ' Enter a search query'); return; }
 
   // Search via chat completions with special directive
-  showResult(resultEl, 'success', `🔍 Searching Tantivy BM25 index for: "${query}"\n\n` +
+  showResult(resultEl, 'success', ` Searching Tantivy BM25 index for: "${query}"\n\n` +
     `This queries the embedded Tantivy RAM index on the Gateway.\n` +
     `(Direct skill search endpoint coming in next update)`
   );
@@ -255,21 +255,21 @@ async function registerProvider() {
   const resultEl = document.getElementById('prov-result');
 
   if (!token || !name || !baseUrl) {
-    showResult(resultEl, 'error', '⚠ All fields required');
+    showResult(resultEl, 'error', ' All fields required');
     return;
   }
 
   const { ok, status, data } = await apiPost('/v1/admin/providers', { name, base_url: baseUrl, extra_headers: [] }, token);
 
   if (ok) {
-    showResult(resultEl, 'success', `✅ Provider '${name}' registered successfully.\nChat Endpoint: ${data.chat_endpoint}`);
+    showResult(resultEl, 'success', ` Provider '${name}' registered successfully.\nChat Endpoint: ${data.chat_endpoint}`);
     document.getElementById('prov-name').value = '';
     document.getElementById('prov-url').value = '';
     if (data.all_providers) {
       updateProvidersList(data.all_providers);
     }
   } else {
-    showResult(resultEl, 'error', `❌ Error ${status}: ${JSON.stringify(data, null, 2)}`);
+    showResult(resultEl, 'error', ` Error ${status}: ${JSON.stringify(data, null, 2)}`);
   }
 }
 

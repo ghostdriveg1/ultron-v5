@@ -64,6 +64,8 @@ pub fn build_router(state: AppState) -> Router {
         .route("/v1/memory/error", post(push_error_handler))
         // Control Panel UI
         .route("/dashboard", get(dashboard_handler))
+        .route("/dashboard/style.css", get(dashboard_css_handler))
+        .route("/dashboard/app.js", get(dashboard_js_handler))
         .route("/", get(dashboard_handler))
         // Fallback
         .fallback(fallback_handler)
@@ -407,6 +409,14 @@ pub async fn push_error_handler(
 
 pub async fn dashboard_handler() -> impl IntoResponse {
     Html(include_str!("../../dashboard/index.html"))
+}
+
+pub async fn dashboard_css_handler() -> impl IntoResponse {
+    ([(axum::http::header::CONTENT_TYPE, "text/css")], include_str!("../../dashboard/style.css"))
+}
+
+pub async fn dashboard_js_handler() -> impl IntoResponse {
+    ([(axum::http::header::CONTENT_TYPE, "application/javascript")], include_str!("../../dashboard/app.js"))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
