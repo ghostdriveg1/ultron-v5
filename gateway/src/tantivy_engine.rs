@@ -11,7 +11,7 @@ use tantivy::{
     collector::TopDocs,
     doc,
     query::QueryParser,
-    schema::{Schema, STORED, TEXT},
+    schema::{Schema, Value, STORED, TEXT},
     Index, IndexWriter, TantivyDocument,
 };
 use tokio::sync::RwLock;
