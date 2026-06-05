@@ -205,8 +205,6 @@ impl LlmClient {
             .ok_or_else(|| anyhow!("Empty choices in LLM response"))
     }
 
-    /// Call the Gateway's /v1/chat/completions endpoint (Tiers 3 & 4)
-    /// This uses the Gateway's KeyPool — no API key needed here.
     pub async fn chat_via_gateway(
         &self,
         gateway_url: &str,
@@ -215,6 +213,7 @@ impl LlmClient {
         provider: &str,
         messages: Vec<Message>,
         max_tokens: Option<u32>,
+        tier: Option<&str>,
     ) -> Result<String> {
         let url = format!("{}/v1/chat/completions", gateway_url.trim_end_matches('/'));
 
@@ -224,6 +223,10 @@ impl LlmClient {
             "messages": messages,
             "max_tokens": max_tokens.unwrap_or(4096),
         });
+        
+        if let Some(t) = tier {
+            payload.as_object_mut().unwrap().insert("tier".to_string(), serde_json::json!(t));
+        }
 
         let response = self.client
             .post(&url)

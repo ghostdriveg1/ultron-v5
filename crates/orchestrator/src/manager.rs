@@ -52,8 +52,9 @@ impl Manager {
         &self,
         task: &SubTask,
         l3_rules: &str,
+        required_tier: &str,
     ) -> Result<Vec<WorkerInstruction>> {
-        info!("[T3 Manager] Planning: {}", task.title);
+        info!("[T3 Manager] Planning: {} (tier: {})", task.title, required_tier);
 
         let rules_section = if !l3_rules.is_empty() {
             format!("\n\nProject Rules (L3):\n{}", l3_rules)
@@ -89,7 +90,7 @@ impl Manager {
             )),
         ];
 
-        // Uses Gateway KeyPool — free tier keys
+        // Uses Gateway KeyPool — free tier keys, dynamically routed by tier
         let raw = self.llm.chat_via_gateway(
             &self.config.gateway_url,
             &self.config.hf_token,
@@ -97,6 +98,7 @@ impl Manager {
             &self.config.tier34_provider,
             messages,
             Some(2048),
+            Some(required_tier),
         ).await?;
 
         let clean = strip_fences(&raw);

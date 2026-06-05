@@ -99,7 +99,6 @@ impl ApiKey {
         );
     }
 
-    /// Permanent disable (401 Unauthorized — key is invalid/revoked)
     pub fn mark_invalid(&mut self) {
         self.timeout_until = Some(Instant::now() + Duration::from_secs(365 * 24 * 3600));
         warn!(
@@ -113,6 +112,18 @@ impl ApiKey {
             t.checked_duration_since(Instant::now())
                 .map(|d| d.as_secs())
         })
+    }
+
+    /// Evaluates model ID to assign a capability tier
+    pub fn evaluate_tier(model: &str) -> String {
+        let m = model.to_lowercase();
+        if m.contains("gpt-4") || m.contains("claude-3-opus") || m.contains("gemini-1.5-pro") || m.contains("70b") || m.contains("deepseek-coder") {
+            "premium".to_string()
+        } else if m.contains("mixtral") || m.contains("flash") || m.contains("8b") || m.contains("gpt-3.5") || m.contains("haiku") {
+            "fast".to_string()
+        } else {
+            "cheap".to_string()
+        }
     }
 }
 
@@ -279,6 +290,33 @@ impl KeyPool {
         for bucket_key in matching_keys {
             if let Some(key_info) = self.get_next_available(&bucket_key.0, &bucket_key.1) {
                 return Some(key_info);
+            }
+        }
+        None
+    }
+
+    /// Swarm Intelligence Layer: Dynamically select best available key by tier
+    pub fn get_key_by_tier(&mut self, required_tier: &str) -> Option<(String, String, String)> {
+        // Collect buckets that match the tier
+        let mut candidate_buckets: Vec<BucketKey> = self.buckets
+            .keys()
+            .filter(|(_, model)| ApiKey::evaluate_tier(model) == required_tier)
+            .cloned()
+            .collect();
+        
+        // If no keys in this tier, fallback to premium (or fast if premium requested and none available)
+        if candidate_buckets.is_empty() {
+            let fallback_tier = if required_tier == "cheap" || required_tier == "fast" { "premium" } else { "fast" };
+            candidate_buckets = self.buckets.keys()
+                .filter(|(_, model)| ApiKey::evaluate_tier(model) == fallback_tier)
+                .cloned()
+                .collect();
+        }
+
+        // Return first available key from candidates
+        for bucket_key in candidate_buckets {
+            if let Some((key_str, provider)) = self.get_next_available(&bucket_key.0, &bucket_key.1) {
+                return Some((key_str, provider, bucket_key.1));
             }
         }
         None

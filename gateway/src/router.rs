@@ -98,6 +98,7 @@ pub struct ChatRequest {
     pub temperature: Option<f32>,
     pub stream: Option<bool>,
     pub provider: Option<String>,  // optional provider override
+    pub tier: Option<String>,      // Swarm Intelligence: optional tier requested (premium, fast, cheap)
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -110,10 +111,10 @@ pub async fn chat_completions_handler(
     Extension(state): Extension<Arc<AppState>>,
     Json(mut req): Json<ChatRequest>,
 ) -> impl IntoResponse {
-    let model = req.model.clone().unwrap_or_else(|| "llama-3.3-70b-versatile".to_string());
-    let provider_name = req.provider.clone().unwrap_or_else(|| "groq".to_string());
+    let mut model = req.model.clone().unwrap_or_else(|| "llama-3.3-70b-versatile".to_string());
+    let mut provider_name = req.provider.clone().unwrap_or_else(|| "groq".to_string());
 
-    info!(model = %model, provider = %provider_name, "Chat completion request");
+    info!(model = %model, provider = %provider_name, tier = ?req.tier, "Chat completion request");
 
     // ── 1. JIT Karpathy Compiler — inject known strategies ───────────────
     if let Some(last_msg) = req.messages.last() {
@@ -136,9 +137,27 @@ pub async fn chat_completions_handler(
     let (api_key, api_url) = {
         let mut pool = state.keypool.write().await;
 
-        let mut key_result = pool.get_next_available(&provider_name, &model);
+        let mut key_result = None;
+        
+        // Swarm Intelligence Layer: Route by tier if requested
+        if let Some(ref required_tier) = req.tier {
+            if let Some((k, p, m)) = pool.get_key_by_tier(required_tier) {
+                key_result = Some((k, p.clone()));
+                model = m;
+                provider_name = p;
+                req.model = Some(model.clone()); // Overwrite model in payload so downstream API accepts it
+                info!(tier = %required_tier, assigned_model = %model, assigned_provider = %provider_name, "Tier-based routing triggered");
+            }
+        }
+
+        // Standard routing if tier-based not requested or failed
         if key_result.is_none() {
-            key_result = pool.get_any_key_for_provider(&provider_name);
+            key_result = pool.get_next_available(&provider_name, &model);
+            if key_result.is_none() {
+                key_result = pool.get_any_key_for_provider(&provider_name);
+                // If we get an any key, we should really overwrite req.model but get_any_key doesn't return the model yet.
+                // For now, it might fail downstream if the model isn't supported by the generic key, but it's a fallback.
+            }
         }
 
         match key_result {
@@ -153,11 +172,11 @@ pub async fn chat_completions_handler(
                 (key, url)
             }
             None => {
-                warn!(provider = %provider_name, model = %model, "No available keys");
+                warn!(provider = %provider_name, model = %model, tier = ?req.tier, "No available keys");
                 return (
                     StatusCode::SERVICE_UNAVAILABLE,
                     Json(json!({
-                        "error": "No available API keys for this provider/model",
+                        "error": "No available API keys for this provider/model/tier",
                         "hint": "Inject keys via POST /v1/admin/keys or add a provider via POST /v1/admin/providers",
                         "code": "NO_KEYS_AVAILABLE"
                     })),
@@ -329,12 +348,7 @@ pub async fn health_handler(
         "gateway": "online",
         "version": "5.0.0",
         "registered_providers": providers,
-        "cluster": {
-            "space_2_l1": cluster.l1,
-            "space_3_l3": cluster.l3,
-            "space_4_l4": cluster.l4,
-            "space_5_rnd": cluster.rnd,
-        },
+        "cluster": cluster,
     }))).into_response()
 }
 

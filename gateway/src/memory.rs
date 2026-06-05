@@ -187,7 +187,7 @@ impl WebdisClient {
             .client
             .get(&url)
             .header("Authorization", self.auth_header())
-            .timeout(Duration::from_secs(5))
+            .timeout(Duration::from_secs(30))
             .send()
             .await
         {
@@ -363,9 +363,13 @@ impl OmniMem {
 
 #[derive(Debug, Serialize, Clone)]
 pub struct ClusterHealth {
+    #[serde(rename = "space_2_l1")]
     pub l1: bool,
+    #[serde(rename = "space_3_l3")]
     pub l3: bool,
+    #[serde(rename = "space_4_l4")]
     pub l4: bool,
+    #[serde(rename = "space_5_rnd")]
     pub rnd: bool,
 }
 

@@ -16,6 +16,7 @@ pub struct ProjectPlan {
     pub goal: String,
     pub epics: Vec<String>,
     pub l3_rules: std::collections::HashMap<String, String>,
+    pub required_tier: String,
 }
 
 pub struct Senator {
@@ -43,12 +44,14 @@ impl Senator {
                 {{\n\
                   \"goal\": \"one sentence goal\",\n\
                   \"epics\": [\"epic 1\", \"epic 2\", ...],\n\
-                  \"l3_rules\": {{\"rule_name\": \"rule_content\", ...}}\n\
+                  \"l3_rules\": {{\"rule_name\": \"rule_content\", ...}},\n\
+                  \"required_tier\": \"premium | fast | cheap\"\n\
                 }}\n\n\
                 Project: {}\n\n\
                 Requirements:\n\
                 - 3-7 epics\n\
                 - 3-5 L3 architectural rules\n\
+                - required_tier: evaluate project complexity. Use 'premium' for complex reasoning/architecture, 'fast' for standard business logic, 'cheap' for boilerplate/simple tasks.\n\
                 - Be specific and actionable",
                 project
             )),

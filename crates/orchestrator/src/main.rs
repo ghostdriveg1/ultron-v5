@@ -176,7 +176,7 @@ async fn run_swarm(
     for (i, task) in all_tasks.iter().enumerate() {
         println!("\n  [{}/{}] {}", i + 1, total, task.title.bold());
 
-        let instructions = match manager.plan_task(task, &l3_rules).await {
+        let instructions = match manager.plan_task(task, &l3_rules, &plan.required_tier).await {
             Ok(instrs) => instrs,
             Err(e) => {
                 println!("    {} Manager failed: {}", "✗".red(), e);

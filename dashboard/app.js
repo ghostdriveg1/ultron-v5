@@ -72,11 +72,18 @@ async function fetchHealth() {
 
 function updateProvidersList(providers) {
   const tbody = document.getElementById('prov-list-body');
-  if (!tbody) return;
-  if (!providers || providers.length === 0) {
-    tbody.innerHTML = '<tr><td class="empty-row">No providers found</td></tr>';
-  } else {
-    tbody.innerHTML = providers.map(p => `<tr><td>${p}</td></tr>`).join('');
+  const select = document.getElementById('key-provider');
+  if (tbody) {
+    if (!providers || providers.length === 0) {
+      tbody.innerHTML = '<tr><td class="empty-row">No providers found</td></tr>';
+    } else {
+      tbody.innerHTML = providers.map(p => `<tr><td>${p}</td></tr>`).join('');
+    }
+  }
+  if (select && providers && providers.length > 0) {
+    const currentVal = select.value;
+    select.innerHTML = providers.map(p => `<option value="${p}">${p}</option>`).join('');
+    if (providers.includes(currentVal)) select.value = currentVal;
   }
 }
 
