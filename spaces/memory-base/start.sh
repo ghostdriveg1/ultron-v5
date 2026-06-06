@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -ex
 
 echo "==> Starting Olympus OMNIMEM Shard..."
 
@@ -9,7 +9,7 @@ cd /app
 
 # Start Redis in background
 echo "==> Launching Redis..."
-redis-server /etc/redis/redis.conf
+redis-server /etc/redis/redis.conf &
 
 # Wait for Redis to be ready
 echo "==> Waiting for Redis to be ready..."
