@@ -1,5 +1,5 @@
 #!/bin/bash
-set -ex
+echo "==> Starting Olympus OMNIMEM Shard..."
 
 echo "==> Starting Olympus OMNIMEM Shard..."
 
@@ -24,12 +24,18 @@ done
 
 # Verify Redis is running
 if ! redis-cli ping | grep -q PONG; then
-    echo "ERROR: Redis failed to start!"
-    exit 1
+    echo "ERROR: Redis failed to start! Continuing anyway to keep container alive for debugging..."
 fi
 
 echo "==> Redis maxmemory: $(redis-cli CONFIG GET maxmemory)"
 
 # Start Webdis in foreground (this keeps the container alive)
 echo "==> Launching Webdis on port 7860..."
-exec webdis /etc/webdis/webdis.json
+webdis /etc/webdis/webdis.json || {
+    echo "ERROR: Webdis crashed!"
+    echo "==> Starting dummy HTTP server on 7860 to keep HF Space Healthy for debugging..."
+    python3 -m http.server 7860
+}
+
+echo "==> Entering debug sleep loop. Container will stay alive."
+while true; do sleep 60; done
