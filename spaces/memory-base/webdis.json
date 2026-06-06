@@ -3,7 +3,7 @@
     "redis_port": 6379,
     "redis_auth": "",
     "http_host": "0.0.0.0",
-    "port": 7860,
+    "http_port": 7860,
     "db_filename": "/app/webdis.db",
     "logfile": "/dev/stdout",
     "verbosity": "notice",
