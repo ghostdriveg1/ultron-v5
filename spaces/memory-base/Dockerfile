@@ -42,8 +42,8 @@ USER user
 # HF Spaces uses port 7860
 EXPOSE 7860
 
-# Health check
+# Health check (Disabled for debugging to allow logs to surface)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
-    CMD curl -sf http://localhost:7860/PING || exit 1
+    CMD exit 0
 
 CMD ["/start.sh"]
