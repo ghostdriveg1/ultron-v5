@@ -43,7 +43,7 @@ COPY --from=builder /build/target/release/gateway /app/gateway
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
-    CMD bash -c 'exec 3<>/dev/tcp/localhost/7860 && echo -e "GET /v1/health HTTP/1.0\r\n\r\n" >&3 && cat <&3 | grep -q "healthy"'
+    CMD bash -c 'exec 3<>/dev/tcp/localhost/7860 && echo -e "GET /ping HTTP/1.0\r\n\r\n" >&3 && cat <&3 | grep -q "PONG"'
 
 EXPOSE 7860
 

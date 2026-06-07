@@ -60,6 +60,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/v1/admin/status", get(admin_status_handler))
         // Health
         .route("/v1/health", get(health_handler))
+        .route("/ping", get(ping_handler))
         // Memory operations
         .route("/v1/memory/error", post(push_error_handler))
         // Control Panel UI
@@ -350,6 +351,14 @@ pub async fn health_handler(
         "registered_providers": providers,
         "cluster": cluster,
     }))).into_response()
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /ping (Docker Healthcheck)
+// ─────────────────────────────────────────────────────────────────────────────
+
+pub async fn ping_handler() -> impl IntoResponse {
+    (StatusCode::OK, "PONG")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
