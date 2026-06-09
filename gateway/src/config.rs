@@ -50,7 +50,11 @@ impl Config {
                 .expect("PORT must be a number"),
 
             admin_token: std::env::var("ADMIN_TOKEN")
-                .expect("ADMIN_TOKEN env var is required"),
+                .unwrap_or_else(|_| {
+                    let generated = uuid::Uuid::new_v4().to_string();
+                    eprintln!("WARNING: ADMIN_TOKEN not set. Auto-generated: {}", generated);
+                    generated
+                }),
 
             shard_l1_url: std::env::var("SHARD_L1_URL")
                 .unwrap_or_else(|_| "https://ultron-v5-olympus-memory-l1.hf.space".to_string()),
@@ -65,7 +69,10 @@ impl Config {
                 .unwrap_or_else(|_| "https://ultron-v5-olympus-memory-rnd.hf.space".to_string()),
 
             hf_token: std::env::var("HF_TOKEN")
-                .expect("HF_TOKEN env var is required"),
+                .unwrap_or_else(|_| {
+                    eprintln!("WARNING: HF_TOKEN not set. Memory shard auth will fail until set.");
+                    String::new()
+                }),
 
             cache_ttl: Duration::from_secs(
                 std::env::var("CACHE_TTL_SECS")
